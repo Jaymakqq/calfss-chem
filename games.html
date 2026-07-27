@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>化學小遊戲 | CALFSS CHEM</title>
+<style>
+  :root{--cream:#faf8f4;--ink:#1a1a1a;--muted:#6b6b66;--line:#e8e4dc}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang HK","Noto Sans HK","Microsoft JhengHei",sans-serif;
+       background:var(--cream);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--line)}
+  .logo{font-weight:900;font-size:1.15rem;letter-spacing:-.5px;text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:10px}
+  .logo-img{height:34px;width:auto;display:block}
+  .logo em{font-style:normal;color:#2f6fed}
+  .navlinks{display:flex;gap:6px;flex-wrap:wrap}
+  .navlinks a{text-decoration:none;color:var(--muted);font-size:.82rem;padding:8px 14px;border-radius:999px;font-weight:600}
+  .navlinks a:hover,.navlinks a.on{background:var(--ink);color:#fff}
+  .soon{flex:1;display:grid;place-items:center;padding:60px 24px;text-align:center}
+  .soon .box{max-width:440px}
+  .soon .big{font-size:4.5rem;margin-bottom:18px}
+  .soon h1{font-size:2rem;font-weight:900;letter-spacing:-1px}
+  .soon p{color:var(--muted);margin-top:12px;line-height:1.8;font-size:.92rem}
+  .soon .plan{margin-top:26px;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:20px 24px}
+  .soon .plan div{padding:8px 0;font-size:.88rem;border-bottom:1px dashed var(--line)}
+  .soon .plan div:last-child{border:none}
+  .soon a.home{display:inline-block;margin-top:28px;padding:13px 28px;background:var(--ink);color:#fff;border-radius:999px;text-decoration:none;font-weight:800;font-size:.88rem}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="index.html"><img src="assets/MWK_logo.png" alt="MWK" class="logo-img">CALFSS<em>CHEM</em></a>
+  <div class="navlinks">
+    <a href="sims.html">🧪 模擬器</a>
+    <a href="notes.html">📓 溫習筆記</a>
+    <a href="games.html" class="on">🎮 小遊戲</a>
+    <a href="cards.html">🃏 Concept Cards</a>
+  </div>
+</nav>
+<div class="soon"><div class="box">
+  <div class="big">🎮</div>
+  <h1>化學小遊戲</h1>
+  <p>玩住學化學！首個遊戲開發中，好快推出：</p>
+  <div class="plan">
+    <div>⚗️ <b>方程式配平挑戰</b> — 限時配平化學方程式，計分制</div>
+    <div>🧬 <b>元素週期表配對</b> — 記憶翻牌，邊玩邊背元素符號</div>
+    <div>🔬 <b>官能基快問快答</b> — 認住有機化合物嘅 functional group</div>
+  </div>
+  <a class="home" href="index.html">← 返回首頁</a>
+</div></div>
+</body>
+</html>

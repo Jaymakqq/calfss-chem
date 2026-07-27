@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSE Chemistry: Free Radical Substitution Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Roboto:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', 'Noto Sans TC', sans-serif;
+            background-color: #f0f4f8;
+            overflow-x: hidden;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            background: radial-gradient(circle, #2c3e50 0%, #000000 100%);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .uv-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(155, 89, 182, 0.2);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 5;
+        }
+
+        .uv-active .uv-overlay {
+            opacity: 1;
+            animation: flicker 2s infinite;
+        }
+
+        @keyframes flicker {
+            0%, 100% { background: rgba(155, 89, 182, 0.15); }
+            50% { background: rgba(155, 89, 182, 0.25); }
+        }
+
+        .particle {
+            position: absolute;
+            transition: transform 0.1s linear;
+            cursor: grab;
+            user-select: none;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            will-change: transform;
+        }
+
+        .radical-glow {
+            filter: drop-shadow(0 0 12px #ff4757);
+        }
+
+        .fission-effect {
+            position: absolute;
+            border: 2px solid #f1c40f;
+            border-radius: 50%;
+            animation: expand 0.5s ease-out forwards;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        @keyframes expand {
+            0% { width: 10px; height: 10px; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { width: 100px; height: 100px; opacity: 0; transform: translate(-50%, -50%) scale(2); }
+        }
+
+        .attack-flash {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: flash 0.3s ease-out forwards;
+            pointer-events: none;
+            z-index: 21;
+        }
+
+        @keyframes flash {
+            0% { opacity: 0.8; transform: translate(-50%, -50%) scale(0.5); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Language Switcher -->
+    <div class="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-md p-1 border border-gray-200">
+        <button onclick="setLanguage('zh')" id="lang-zh" class="px-3 py-1 rounded text-sm font-bold transition-colors bg-blue-500 text-white">繁體中文</button>
+        <button onclick="setLanguage('en')" id="lang-en" class="px-3 py-1 rounded text-sm font-bold transition-colors text-gray-600 hover:bg-gray-100">English</button>
+    </div>
+
+    <div class="max-w-7xl mx-auto mt-6">
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl font-bold text-slate-800 mb-2" data-i18n="title">甲烷的氯化反應：完整取代模擬</h1>
+            <p class="text-slate-600" data-i18n="subtitle">DSE 化學：從 CH<sub>4</sub> 到 CCl<sub>4</sub> 的完整自由基取代鏈反應</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <div class="lg:col-span-1 space-y-4">
+                <div class="bg-white p-4 rounded-xl shadow-md">
+                    <h2 class="font-bold text-lg mb-3 border-b pb-2" data-i18n="control_panel">實驗控制面板</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="uv_label">紫外線 (UV Light)</label>
+                        <button id="uvBtn" class="w-full py-3 rounded-lg font-bold transition-all bg-gray-200 text-gray-700 hover:bg-gray-300">
+                            OFF
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <button id="addMethane" class="w-full py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition" data-i18n="btn_methane">投放甲烷 (CH₄)</button>
+                        <button id="addChlorine" class="w-full py-2 bg-green-500 text-white rounded hover:bg-green-600 transition" data-i18n="btn_chlorine">投放氯分子 (Cl₂)</button>
+                        <button id="resetBtn" class="w-full py-2 border border-red-400 text-red-500 rounded hover:bg-red-50 transition" data-i18n="btn_reset">重設實驗</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl shadow-md">
+                    <h2 class="font-bold text-lg mb-3 border-b pb-2" data-i18n="legend_title">取代產物圖例</h2>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-blue-400"></div> <span data-i18n="atom_h">H (氫)</span></div>
+                        <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-green-500"></div> <span data-i18n="atom_cl">Cl (氯)</span></div>
+                        <div class="mt-2 pt-2 border-t border-gray-100">
+                            <p class="text-gray-500 mb-1" data-i18n="path_label">反應路徑：</p>
+                            <div class="font-mono text-slate-700">
+                                <p>CH<sub>4</sub> &rarr; CH<sub>3</sub>Cl</p>
+                                <p>&rarr; CH<sub>2</sub>Cl<sub>2</sub> &rarr; CHCl<sub>3</sub></p>
+                                <p>&rarr; CCl<sub>4</sub></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3">
+                <div id="canvas-container">
+                    <div class="uv-overlay"></div>
+                    <div id="particles-layer"></div>
+                    <div id="fx-layer"></div>
+                    
+                    <div class="absolute bottom-4 left-4 text-white z-10 bg-black/40 p-3 rounded-lg backdrop-blur-sm pointer-events-none">
+                        <p id="stats" class="font-mono text-sm">Loading...</p>
+                        <p id="alert-msg" class="text-yellow-400 text-sm h-5 font-bold mt-1"></p>
+                    </div>
+                </div>
+
+                <div class="mt-4 bg-white p-4 rounded-xl shadow-md overflow-x-auto">
+                    <div class="p-3 bg-slate-50 rounded border border-slate-200 w-full">
+                        <p class="text-xs text-gray-400 uppercase font-bold mb-1" data-i18n="eq_label">化學反應方程式</p>
+                        <p id="current-equation" class="text-xl font-mono text-slate-700 italic">Waiting...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Internationalization (i18n) ---
+        const I18N = {
+            zh: {
+                title: "甲烷的氯化反應：完整取代模擬",
+                subtitle: "DSE 化學：從 CH<sub>4</sub> 到 CCl<sub>4</sub> 的完整自由基取代鏈反應",
+                control_panel: "實驗控制面板",
+                uv_label: "紫外線 (UV Light)",
+                btn_methane: "投放甲烷 (CH₄)",
+                btn_chlorine: "投放氯分子 (Cl₂)",
+                btn_reset: "重設實驗",
+                legend_title: "取代產物圖例",
+                atom_h: "H (氫)",
+                atom_cl: "Cl (氯)",
+                path_label: "反應路徑：",
+                eq_label: "化學反應方程式",
+                wait_uv: "等待 UV 引發...",
+                uv_on: "UV 開啟",
+                uv_off: "UV 關閉",
+                msg_cleared: "已清除所有分子，請手動投放",
+                msg_initiation: "⚡ 引發：Cl₂ 發生均裂！",
+                msg_prop_methyl: "💥 傳播：形成甲基自由基！",
+                msg_prop_ch3cl: "✅ 生成：氯甲烷 (CH₃Cl)",
+                msg_prop_ch2cl: "💥 多重取代：形成 •CH₂Cl",
+                msg_prop_ch2cl2: "✅ 生成：二氯甲烷 (CH₂Cl₂)",
+                msg_prop_chcl2: "💥 多重取代：形成 •CHCl₂",
+                msg_prop_chcl3: "✅ 生成：三氯甲烷 (CHCl₃)",
+                msg_prop_ccl3: "💥 多重取代：形成 •CCl₃",
+                msg_prop_ccl4: "🏆 最終生成：四氯化碳 (CCl₄)！",
+                msg_term_preferred: "🛑 終止反應：形成穩定氯代烴 (優先)",
+                msg_term_cl2: "🛑 終止：Cl₂ 再生",
+                msg_term_ethane: "🛑 終止：生成乙烷",
+                stats_template: "系統中：{m} 分子, {r} 自由基",
+                label_ethane: "乙烷"
+            },
+            en: {
+                title: "Chlorination of Methane: Substitution Simulation",
+                subtitle: "DSE Chemistry: Full Free Radical Substitution from CH<sub>4</sub> to CCl<sub>4</sub>",
+                control_panel: "Control Panel",
+                uv_label: "UV Light Switch",
+                btn_methane: "Add Methane (CH₄)",
+                btn_chlorine: "Add Chlorine (Cl₂)",
+                btn_reset: "Reset Experiment",
+                legend_title: "Product Legend",
+                atom_h: "H (Hydrogen)",
+                atom_cl: "Cl (Chlorine)",
+                path_label: "Reaction Path:",
+                eq_label: "Chemical Equation",
+                wait_uv: "Waiting for UV initiation...",
+                uv_on: "UV ON",
+                uv_off: "UV OFF",
+                msg_cleared: "All molecules cleared. Please add manually.",
+                msg_initiation: "⚡ Initiation: Cl₂ Homolytic Fission!",
+                msg_prop_methyl: "💥 Propagation: Methyl radical formed!",
+                msg_prop_ch3cl: "✅ Formed: Chloromethane (CH₃Cl)",
+                msg_prop_ch2cl: "💥 Multi-Sub: •CH₂Cl radical formed",
+                msg_prop_ch2cl2: "✅ Formed: Dichloromethane (CH₂Cl₂)",
+                msg_prop_chcl2: "💥 Multi-Sub: •CHCl₂ radical formed",
+                msg_prop_chcl3: "✅ Formed: Trichloromethane (CHCl₃)",
+                msg_prop_ccl3: "💥 Multi-Sub: •CCl₃ radical formed",
+                msg_prop_ccl4: "🏆 Final Product: Tetrachloromethane (CCl₄)!",
+                msg_term_preferred: "🛑 Termination: Stable chloroalkane formed (Preferred)",
+                msg_term_cl2: "🛑 Termination: Cl₂ regenerated",
+                msg_term_ethane: "🛑 Termination: Ethane formed",
+                stats_template: "System: {m} Molecules, {r} Radicals",
+                label_ethane: "Ethane"
+            }
+        };
+
+        let currentLang = 'zh';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            
+            // Update buttons style
+            document.getElementById('lang-zh').className = lang === 'zh' 
+                ? "px-3 py-1 rounded text-sm font-bold transition-colors bg-blue-500 text-white" 
+                : "px-3 py-1 rounded text-sm font-bold transition-colors text-gray-600 hover:bg-gray-100";
+            document.getElementById('lang-en').className = lang === 'en' 
+                ? "px-3 py-1 rounded text-sm font-bold transition-colors bg-blue-500 text-white" 
+                : "px-3 py-1 rounded text-sm font-bold transition-colors text-gray-600 hover:bg-gray-100";
+
+            // Update static Text
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (I18N[lang][key]) el.innerHTML = I18N[lang][key];
+            });
+
+            // Update dynamic UI components
+            const uvBtn = document.getElementById('uvBtn');
+            uvBtn.textContent = isUVOn ? I18N[lang].uv_on : I18N[lang].uv_off;
+            
+            if (particles.length === 0) {
+                showEquation(I18N[lang].wait_uv);
+            }
+
+            updateStats();
+
+            // Refresh all particles to update any text labels (like Ethane)
+            particles.forEach(p => {
+                p.element.innerHTML = p.getSVG();
+            });
+        }
+
+        function t(key) {
+            return I18N[currentLang][key] || key;
+        }
+
+        // --- Simulator Code ---
+
+        const container = document.getElementById('canvas-container');
+        const layer = document.getElementById('particles-layer');
+        const fxLayer = document.getElementById('fx-layer');
+        const uvBtn = document.getElementById('uvBtn');
+        const statsEl = document.getElementById('stats');
+        const equationEl = document.getElementById('current-equation');
+        const alertEl = document.getElementById('alert-msg');
+
+        let isUVOn = false;
+        let particles = [];
+        let animationId;
+
+        const COLORS = {
+            C: '#7f8c8d',
+            H: '#3498db',
+            Cl: '#2ecc71',
+            Bond: '#34495e',
+            Radical: '#ff4757'
+        };
+
+        class Particle {
+            constructor(type, x, y, vx, vy) {
+                this.type = type; 
+                const currentWidth = container.clientWidth || 800; 
+                const currentHeight = container.clientHeight || 500;
+                
+                this.x = (x !== undefined) ? x : Math.random() * (currentWidth - 100) + 10;
+                this.y = (y !== undefined) ? y : Math.random() * (currentHeight - 100) + 10;
+                this.vx = (vx !== undefined) ? vx : (Math.random() - 0.5) * 4;
+                this.vy = (vy !== undefined) ? vy : (Math.random() - 0.5) * 4;
+                
+                this.isRadical = type.includes('RAD');
+                this.element = this.createElement();
+                this.spawnTime = Date.now();
+                layer.appendChild(this.element);
+            }
+
+            createElement() {
+                const div = document.createElement('div');
+                div.className = 'particle' + (this.isRadical ? ' radical-glow' : '');
+                div.innerHTML = this.getSVG();
+                return div;
+            }
+
+            getSVG() {
+                const base = `<svg width="80" height="80" viewBox="0 0 80 80">`;
+                const c_center = `<circle cx="40" cy="40" r="12" fill="${COLORS.C}"/><text x="40" y="44" text-anchor="middle" font-size="10" fill="white" font-weight="bold">C</text>`;
+                const bonds = `
+                    <line x1="40" y1="40" x2="40" y2="15" stroke="${COLORS.Bond}" stroke-width="4"/>
+                    <line x1="40" y1="40" x2="40" y2="65" stroke="${COLORS.Bond}" stroke-width="4"/>
+                    <line x1="40" y1="40" x2="15" y2="40" stroke="${COLORS.Bond}" stroke-width="4"/>
+                    <line x1="40" y1="40" x2="65" y2="40" stroke="${COLORS.Bond}" stroke-width="4"/>`;
+
+                const atom = (pos, type) => {
+                    let cx, cy, label = '';
+                    if (pos === 'top') { cx=40; cy=15; }
+                    if (pos === 'bottom') { cx=40; cy=65; }
+                    if (pos === 'left') { cx=15; cy=40; }
+                    if (pos === 'right') { cx=65; cy=40; }
+                    
+                    if (type === 'H') return `<circle cx="${cx}" cy="${cy}" r="9" fill="${COLORS.H}"/>`;
+                    if (type === 'Cl') return `<circle cx="${cx}" cy="${cy}" r="12" fill="${COLORS.Cl}"/><text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="9" fill="white">Cl</text>`;
+                    if (type === 'Rad') return `<circle cx="${cx}" cy="${cy}" r="5" fill="${COLORS.Radical}"/>`;
+                    return '';
+                };
+
+                // Helper for labels inside SVG (e.g., CCl4, Ethane)
+                const label = (text, dy=12) => `<text x="40" y="44" text-anchor="middle" font-size="8" fill="white" font-weight="bold" dy="${dy}">${text}</text>`;
+
+                switch(this.type) {
+                    case 'CH4': return `${base}${bonds}${c_center}${atom('top','H')}${atom('bottom','H')}${atom('left','H')}${atom('right','H')}</svg>`;
+                    case 'CL2': return `${base}
+                        <line x1="25" y1="40" x2="55" y2="40" stroke="${COLORS.Bond}" stroke-width="4"/>
+                        <circle cx="25" cy="40" r="12" fill="${COLORS.Cl}"/><text x="25" y="44" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Cl</text>
+                        <circle cx="55" cy="40" r="12" fill="${COLORS.Cl}"/><text x="55" y="44" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Cl</text></svg>`;
+                    case 'CL_RAD': return `${base}
+                        <circle cx="40" cy="40" r="12" fill="${COLORS.Cl}"/><text x="40" y="44" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Cl</text>
+                        <circle cx="55" cy="30" r="5" fill="${COLORS.Radical}"/></svg>`;
+                    case 'HCL': return `${base}
+                        <line x1="30" y1="40" x2="50" y2="40" stroke="${COLORS.Bond}" stroke-width="4"/>
+                        <circle cx="30" cy="40" r="9" fill="${COLORS.H}"/>
+                        <circle cx="50" cy="40" r="12" fill="${COLORS.Cl}"/><text x="50" y="44" text-anchor="middle" font-size="10" fill="white" font-weight="bold">Cl</text></svg>`;
+
+                    case 'CH3_RAD': return `${base}${bonds}${c_center}${atom('top','H')}${atom('bottom','Rad')}${atom('left','H')}${atom('right','H')}</svg>`;
+                    case 'CH3CL': return `${base}${bonds}${c_center}${atom('top','H')}${atom('bottom','Cl')}${atom('left','H')}${atom('right','H')}</svg>`;
+
+                    case 'CH2CL_RAD': return `${base}${bonds}${c_center}${atom('top','H')}${atom('bottom','Rad')}${atom('left','H')}${atom('right','Cl')}</svg>`;
+                    case 'CH2CL2': return `${base}${bonds}${c_center}${atom('top','H')}${atom('bottom','Cl')}${atom('left','H')}${atom('right','Cl')}${label('DCM')}</svg>`;
+
+                    case 'CHCL2_RAD': return `${base}${bonds}${c_center}${atom('top','H')}${atom('bottom','Rad')}${atom('left','Cl')}${atom('right','Cl')}</svg>`;
+                    case 'CHCL3': return `${base}${bonds}${c_center}${atom('top','H')}${atom('bottom','Cl')}${atom('left','Cl')}${atom('right','Cl')}${label('TCM')}</svg>`;
+
+                    case 'CCL3_RAD': return `${base}${bonds}${c_center}${atom('top','Cl')}${atom('bottom','Rad')}${atom('left','Cl')}${atom('right','Cl')}</svg>`;
+                    case 'CCL4': return `${base}${bonds}${c_center}${atom('top','Cl')}${atom('bottom','Cl')}${atom('left','Cl')}${atom('right','Cl')}${label('CCl4')}</svg>`;
+
+                    case 'C2H6': return `${base}
+                        <line x1="30" y1="40" x2="50" y2="40" stroke="${COLORS.Bond}" stroke-width="6"/>
+                        <circle cx="30" cy="40" r="12" fill="${COLORS.C}"/><circle cx="50" cy="40" r="12" fill="${COLORS.C}"/>
+                        <text x="40" y="65" text-anchor="middle" font-size="10" fill="white">${t('label_ethane')}</text></svg>`;
+                    
+                    default: return '';
+                }
+            }
+
+            update() {
+                const w = container.clientWidth || 800;
+                const h = container.clientHeight || 550;
+                const pSize = 80;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x <= 0) { this.x = 0; this.vx *= -1; } 
+                else if (this.x >= w - pSize) { this.x = w - pSize; this.vx *= -1; }
+
+                if (this.y <= 0) { this.y = 0; this.vy *= -1; } 
+                else if (this.y >= h - pSize) { this.y = h - pSize; this.vy *= -1; }
+
+                this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
+            }
+
+            destroy() { this.element.remove(); }
+        }
+
+        function createEffect(className, x, y) {
+            const div = document.createElement('div');
+            div.className = className;
+            div.style.left = `${x + 40}px`;
+            div.style.top = `${y + 40}px`;
+            fxLayer.appendChild(div);
+            setTimeout(() => div.remove(), 1000);
+        }
+
+        function init() {
+            setLanguage('zh'); // Default language initialization
+            particles = [];
+            layer.innerHTML = '';
+            for(let i=0; i<4; i++) particles.push(new Particle('CH4'));
+            for(let i=0; i<3; i++) particles.push(new Particle('CL2'));
+            if (animationId) cancelAnimationFrame(animationId);
+            animate();
+        }
+
+        function animate() {
+            particles.forEach(p => p.update());
+            checkCollisions();
+            updateStats();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function checkCollisions() {
+            const now = Date.now();
+            for (let i = 0; i < particles.length; i++) {
+                const p1 = particles[i];
+                if (!p1.element.isConnected) continue;
+
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    if (!p2.element.isConnected) continue;
+
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+
+                    if (dist < 50) {
+                        if (p1.isRadical && p2.isRadical && (now - p1.spawnTime < 800 || now - p2.spawnTime < 800)) continue;
+                        handleReaction(p1, p2);
+                        if (!p1.element.isConnected) break;
+                    }
+                }
+            }
+
+            if (isUVOn && Math.random() < 0.008) {
+                const cl2Index = particles.findIndex(p => p.type === 'CL2');
+                if (cl2Index !== -1) {
+                    const p = particles[cl2Index];
+                    const {x, y} = p;
+                    createEffect('fission-effect', x, y);
+                    p.destroy();
+                    particles.splice(cl2Index, 1);
+                    particles.push(new Particle('CL_RAD', x - 30, y, -4, -4));
+                    particles.push(new Particle('CL_RAD', x + 30, y, 4, 4));
+                    showEquation("Cl₂ —(UV)→ 2Cl•");
+                    showAlert(t('msg_initiation'));
+                }
+            }
+        }
+
+        function bounceParticles(p1, p2) {
+             p1.vx = -p1.vx;
+             p1.vy = -p1.vy;
+             p2.vx = -p2.vx;
+             p2.vy = -p2.vy;
+             p1.x += p1.vx * 3;
+             p1.y += p1.vy * 3;
+             p2.x += p2.vx * 3;
+             p2.y += p2.vy * 3;
+        }
+
+        function handleReaction(p1, p2) {
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2;
+            let reacted = false;
+
+            // --- 傳播階段 ---
+            if ((p1.type === 'CL_RAD' && p2.type === 'CH4') || (p2.type === 'CL_RAD' && p1.type === 'CH4')) {
+                replace(p1, p2, 'HCL', 'CH3_RAD');
+                showEquation("Cl• + CH₄ → HCl + •CH₃");
+                showAlert(t('msg_prop_methyl'));
+                reacted = true;
+            }
+            else if ((p1.type === 'CH3_RAD' && p2.type === 'CL2') || (p2.type === 'CH3_RAD' && p1.type === 'CL2')) {
+                replace(p1, p2, 'CH3CL', 'CL_RAD');
+                showEquation("•CH₃ + Cl₂ → CH₃Cl + Cl•");
+                showAlert(t('msg_prop_ch3cl'));
+                reacted = true;
+            }
+            else if ((p1.type === 'CL_RAD' && p2.type === 'CH3CL') || (p2.type === 'CL_RAD' && p1.type === 'CH3CL')) {
+                replace(p1, p2, 'HCL', 'CH2CL_RAD');
+                showEquation("Cl• + CH₃Cl → HCl + •CH₂Cl");
+                showAlert(t('msg_prop_ch2cl'));
+                reacted = true;
+            }
+            else if ((p1.type === 'CH2CL_RAD' && p2.type === 'CL2') || (p2.type === 'CH2CL_RAD' && p1.type === 'CL2')) {
+                replace(p1, p2, 'CH2CL2', 'CL_RAD');
+                showEquation("•CH₂Cl + Cl₂ → CH₂Cl₂ + Cl•");
+                showAlert(t('msg_prop_ch2cl2'));
+                reacted = true;
+            }
+            else if ((p1.type === 'CL_RAD' && p2.type === 'CH2CL2') || (p2.type === 'CL_RAD' && p1.type === 'CH2CL2')) {
+                replace(p1, p2, 'HCL', 'CHCL2_RAD');
+                showEquation("Cl• + CH₂Cl₂ → HCl + •CHCl₂");
+                showAlert(t('msg_prop_chcl2'));
+                reacted = true;
+            }
+            else if ((p1.type === 'CHCL2_RAD' && p2.type === 'CL2') || (p2.type === 'CHCL2_RAD' && p1.type === 'CL2')) {
+                replace(p1, p2, 'CHCL3', 'CL_RAD');
+                showEquation("•CHCl₂ + Cl₂ → CHCl₃ + Cl•");
+                showAlert(t('msg_prop_chcl3'));
+                reacted = true;
+            }
+            else if ((p1.type === 'CL_RAD' && p2.type === 'CHCL3') || (p2.type === 'CL_RAD' && p1.type === 'CHCL3')) {
+                replace(p1, p2, 'HCL', 'CCL3_RAD');
+                showEquation("Cl• + CHCl₃ → HCl + •CCl₃");
+                showAlert(t('msg_prop_ccl3'));
+                reacted = true;
+            }
+            else if ((p1.type === 'CCL3_RAD' && p2.type === 'CL2') || (p2.type === 'CCL3_RAD' && p1.type === 'CL2')) {
+                replace(p1, p2, 'CCL4', 'CL_RAD');
+                showEquation("•CCl₃ + Cl₂ → CCl₄ + Cl•");
+                showAlert(t('msg_prop_ccl4'));
+                reacted = true;
+            }
+
+            // --- 終止階段 ---
+            else if (p1.isRadical && p2.isRadical) {
+                // 優先級 1
+                let cRadical = null;
+                if (p1.type === 'CL_RAD' && p2.type.endsWith('_RAD') && p2.type !== 'CL_RAD') cRadical = p2;
+                else if (p2.type === 'CL_RAD' && p1.type.endsWith('_RAD') && p1.type !== 'CL_RAD') cRadical = p1;
+
+                if (cRadical) {
+                    let product = '';
+                    let eq = '';
+                    if (cRadical.type === 'CH3_RAD') { product = 'CH3CL'; eq = '•CH₃ + Cl• → CH₃Cl'; }
+                    else if (cRadical.type === 'CH2CL_RAD') { product = 'CH2CL2'; eq = '•CH₂Cl + Cl• → CH₂Cl₂'; }
+                    else if (cRadical.type === 'CHCL2_RAD') { product = 'CHCL3'; eq = '•CHCl₂ + Cl• → CHCl₃'; }
+                    else if (cRadical.type === 'CCL3_RAD') { product = 'CCL4'; eq = '•CCl₃ + Cl• → CCl₄'; }
+                    
+                    if (product) {
+                        replace(p1, p2, product, null);
+                        showEquation(eq);
+                        showAlert(t('msg_term_preferred'));
+                        reacted = true;
+                    }
+                } 
+                // 優先級 2
+                else if (p1.type === 'CL_RAD' && p2.type === 'CL_RAD') {
+                    if (Math.random() < 0.2) { 
+                        replace(p1, p2, 'CL2', null);
+                        showEquation("Cl• + Cl• → Cl₂");
+                        showAlert(t('msg_term_cl2'));
+                        reacted = true;
+                    } else {
+                        bounceParticles(p1, p2);
+                    }
+                }
+                // 優先級 3
+                else if (p1.type === 'CH3_RAD' && p2.type === 'CH3_RAD') {
+                    if (Math.random() < 0.2) {
+                        replace(p1, p2, 'C2H6', null);
+                        showEquation("•CH₃ + •CH₃ → C₂H₆");
+                        showAlert(t('msg_term_ethane'));
+                        reacted = true;
+                    } else {
+                        bounceParticles(p1, p2);
+                    }
+                }
+            }
+
+            if (reacted) {
+                createEffect('attack-flash', midX, midY);
+            }
+        }
+
+        function replace(p1, p2, t1, t2) {
+            const x = p1.x, y = p1.y;
+            p1.destroy(); 
+            p2.destroy();
+            particles = particles.filter(p => p !== p1 && p !== p2);
+            
+            if (t1) particles.push(new Particle(t1, x, y));
+            if (t2) particles.push(new Particle(t2, x + 40, y + 40));
+        }
+
+        uvBtn.addEventListener('click', () => {
+            isUVOn = !isUVOn;
+            uvBtn.textContent = isUVOn ? t('uv_on') : t('uv_off');
+            uvBtn.className = isUVOn 
+                ? 'w-full py-3 rounded-lg font-bold transition-all bg-purple-600 text-white shadow-lg'
+                : 'w-full py-3 rounded-lg font-bold transition-all bg-gray-200 text-gray-700';
+            container.classList.toggle('uv-active', isUVOn);
+        });
+
+        document.getElementById('addMethane').onclick = () => particles.push(new Particle('CH4'));
+        document.getElementById('addChlorine').onclick = () => particles.push(new Particle('CL2'));
+        document.getElementById('resetBtn').onclick = () => {
+            particles.forEach(p => p.destroy());
+            particles = []; 
+            showEquation(t('wait_uv'));
+            showAlert(t('msg_cleared'));
+        };
+
+        function updateStats() {
+            const r = particles.filter(p => p.isRadical).length;
+            const m = particles.length - r;
+            // Use the stats template from dictionary
+            const template = t('stats_template');
+            statsEl.innerText = template.replace('{m}', m).replace('{r}', r);
+        }
+
+        function showEquation(eq) { equationEl.innerText = eq; }
+        function showAlert(msg) { 
+            alertEl.innerText = msg;
+            setTimeout(() => { if(alertEl.innerText === msg) alertEl.innerText = ""; }, 3000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

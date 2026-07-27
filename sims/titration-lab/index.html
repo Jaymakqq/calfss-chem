@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式酸鹼滴定虛擬實驗室 | Interactive Titration Lab</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f4f8;
+        }
+        /* 滴定管液面動態高度 */
+        .liquid-level {
+            transition: height 0.1s linear, y 0.1s linear;
+        }
+        
+        /* 水滴定位與變形中心點修正 */
+        #dripDrop {
+            transform-origin: 116px 282px;
+        }
+
+        /* 水滴滴落動畫 - 確保完全垂直向下 */
+        @keyframes drip-down {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            80% { transform: translateY(65px) scale(0.8); opacity: 1; }
+            100% { transform: translateY(75px) scale(0.1); opacity: 0; }
+        }
+        .drip {
+            animation: drip-down 0.3s cubic-bezier(0.55, 0.085, 0.68, 0.53) infinite;
+        }
+        /* 玻璃質感 */
+        .glass-glow {
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.6), 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- 導航欄 -->
+    <header class="bg-gradient-to-r from-teal-600 to-cyan-700 text-white shadow-md py-4 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-teal-600 p-2 rounded-lg shadow-inner">
+                    <i class="fa-solid class fa-flask-vial text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold tracking-wide" data-i18n="navTitle">互動式酸鹼滴定虛擬實驗室</h1>
+                    <p class="text-xs text-teal-100" data-i18n="navSubtitle">資深化學老師精心設計 · 專屬 AI 輔助教材</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <span class="bg-teal-800 text-teal-200 text-xs px-3 py-1 rounded-full font-semibold border border-teal-500 hidden sm:inline" data-i18n="navTag">
+                    <i class="fa-solid fa-graduation-cap mr-1"></i> 高中化學 / AP化學 - 實驗篇
+                </span>
+                
+                <!-- 語系切換按鈕 -->
+                <button onclick="toggleLanguage()" class="bg-teal-500 hover:bg-teal-400 text-slate-900 font-extrabold px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-globe text-sm"></i>
+                    <span id="langBtnText">EN / 繁</span>
+                </button>
+
+                <button onclick="openHelpModal()" class="text-white hover:text-teal-200 transition-colors text-sm flex items-center gap-1 font-medium">
+                    <i class="fa-regular fa-circle-question text-lg"></i> <span data-i18n="btnGuide">實驗指南</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- 左側：實驗控制面板與設定 (4/12 columns) -->
+        <section class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- 1. 實驗配置設定 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                    <i class="fa-solid fa-sliders text-teal-600"></i>
+                    <span data-i18n="step1Title">步驟一：實驗參數配置</span>
+                </h2>
+                
+                <div class="space-y-4">
+                    <!-- 滴定類型 -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1.5" data-i18n="labelTitrationType">選擇滴定方向</label>
+                        <select id="titrationType" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none" onchange="initExperiment()">
+                            <option value="base_titrates_acid" data-i18n="optBaseTitratesAcid">鹼 (滴定管) 滴定 酸 (錐形瓶)</option>
+                            <option value="acid_titrates_base" data-i18n="optAcidTitratesBase">酸 (滴定管) 滴定 鹼 (錐形瓶)</option>
+                        </select>
+                    </div>
+
+                    <!-- 酸的種類選擇 -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1.5" data-i18n="labelAcidType">選擇酸的種類</label>
+                        <select id="acidType" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none" onchange="initExperiment()">
+                            <option value="HCl" data-i18n="optHCl">鹽酸 / 氫氯酸 (HCl, 一元強酸)</option>
+                            <option value="H2SO4" data-i18n="optH2SO4">硫酸 (H₂SO₄, 二元強酸)</option>
+                            <option value="CH3COOH" data-i18n="optCH3COOH">乙酸 / 醋酸 (CH₃COOH, 一元弱酸)</option>
+                        </select>
+                    </div>
+
+                    <!-- 鹼的種類選擇 -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1.5" data-i18n="labelBaseType">選擇鹼的種類</label>
+                        <select id="baseType" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none" onchange="initExperiment()">
+                            <option value="NaOH" data-i18n="optNaOH">氫氧化鈉 (NaOH, 一元強鹼)</option>
+                            <option value="NH3" data-i18n="optNH3">氨水 (NH₃, 一元弱鹼)</option>
+                        </select>
+                    </div>
+
+                    <!-- 指示劑選擇 -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1.5" data-i18n="labelIndicator">選擇指示劑</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button id="indicator-mo" onclick="setIndicator('methylOrange')" class="border-2 border-amber-500 bg-amber-50 text-amber-800 font-bold py-2.5 px-3 rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:shadow-md">
+                                <span class="text-sm" data-i18n="indicatorMo">甲基橙</span>
+                                <span class="text-[10px] text-amber-600 font-normal" data-i18n="rangeMo">pH 3.1 (紅) - 4.4 (黃)</span>
+                            </button>
+                            <button id="indicator-pp" onclick="setIndicator('phenolphthalein')" class="border-2 border-slate-200 bg-white text-slate-600 font-bold py-2.5 px-3 rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:border-pink-500 hover:bg-pink-50 hover:text-pink-800">
+                                <span class="text-sm" data-i18n="indicatorPp">酚酞</span>
+                                <span class="text-[10px] text-slate-500 font-normal" data-i18n="rangePp">pH 8.2 (無) - 10.0 (粉紅)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 已知與未知濃度動態摘要 -->
+                    <div class="bg-teal-50/50 p-3 rounded-xl border border-teal-100/80 space-y-2 text-xs">
+                        <div class="flex justify-between text-slate-600">
+                            <span><span data-i18n="infoBuretteSol">滴定管內溶液</span> (<span id="buretteSolName">NaOH</span>) <span data-i18n="infoConc">濃度</span>:</span>
+                            <span class="font-mono font-bold text-teal-700" id="buretteConcText">0.100 M</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span><span data-i18n="infoFlaskSol">錐形瓶溶液</span> (<span id="flaskSolName">HCl</span>) <span data-i18n="infoVol">體積</span>:</span>
+                            <span class="font-mono font-bold text-teal-700">20.00 mL</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span><span data-i18n="infoFlaskSol">錐形瓶溶液</span> (<span id="flaskSolName2">HCl</span>) <span data-i18n="infoConc">濃度</span>:</span>
+                            <span class="font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100" data-i18n="infoUnknown">未知 (待測定)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 滴定流速控制 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                    <i class="fa-solid fa-gauge-high text-teal-600"></i>
+                    <span data-i18n="step2Title">步驟二：滴定操作面板</span>
+                </h2>
+                
+                <div class="space-y-5">
+                    <!-- 滴定閥控制與速度 -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="font-semibold text-slate-600" data-i18n="labelStopcock">控制閥開度 (滴定速度)</span>
+                            <span id="speedValText" class="font-mono font-bold text-teal-600">已關閉</span>
+                        </div>
+                        <input type="range" id="dripSpeedRange" min="0" max="3" value="0" step="1" 
+                               class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                               oninput="handleSpeedSlider(this.value)">
+                        <div class="flex justify-between text-[11px] text-slate-400 font-medium px-1">
+                            <span data-i18n="speed0">關閉</span>
+                            <span data-i18n="speed1">微滴 (極慢)</span>
+                            <span data-i18n="speed2">逐滴 (慢)</span>
+                            <span data-i18n="speed3">連續 (快)</span>
+                        </div>
+                    </div>
+
+                    <!-- 操作按鈕群 -->
+                    <div class="grid grid-cols-2 gap-3 pt-2">
+                        <button onclick="addSingleDrip()" class="bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:from-teal-600 hover:to-teal-700 active:scale-95 transition-all text-sm flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-droplet text-xs"></i> <span data-i18n="btnAddDrop">加入單滴 (0.05mL)</span>
+                        </button>
+                        <button onclick="resetTitration()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-xl active:scale-95 transition-all text-sm flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> <span data-i18n="btnReset">重置實驗</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 實驗紀錄表 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex-grow">
+                <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center justify-between border-b pb-2">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-list text-teal-600"></i>
+                        <span data-i18n="step3Title">步驟三：滴定數據紀錄</span>
+                    </span>
+                    <button onclick="logCurrentData()" class="text-xs bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border border-cyan-200 font-semibold px-2 py-1 rounded transition-colors">
+                        <i class="fa-solid fa-pen-clip"></i> <span data-i18n="btnLog">記錄當前讀數</span>
+                    </button>
+                </h2>
+                
+                <div class="overflow-y-auto max-h-[140px] border border-slate-100 rounded-lg">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 border-b">
+                                <th class="p-2 text-center" data-i18n="thTrial">次數</th>
+                                <th class="p-2" data-i18n="thInitial">起始讀數 (mL)</th>
+                                <th class="p-2" data-i18n="thFinal">終點讀數 (mL)</th>
+                                <th class="p-2 text-teal-600" data-i18n="thTitre">消耗體積 (mL)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordTableBody" class="divide-y divide-slate-100 text-slate-600">
+                            <tr id="emptyRow">
+                                <td colspan="4" class="p-4 text-center text-slate-400 italic" data-i18n="emptyRecord">尚未記錄任何滴定數據</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- 中間：實驗台動畫區 (5/12 columns) -->
+        <section class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between items-center relative overflow-hidden">
+            
+            <!-- 頂部即時狀態儀表 -->
+            <div class="w-full grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100 text-center z-10">
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider" data-i18n="hudBuretteReading">滴定管讀數</p>
+                    <p class="text-lg font-mono font-extrabold text-slate-700"><span id="buretteReading">0.00</span> <span class="text-xs font-normal">mL</span></p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider" data-i18n="hudVolAdded">已滴入體積</p>
+                    <p class="text-lg font-mono font-extrabold text-teal-600"><span id="titrantAdded">0.00</span> <span class="text-xs font-normal">mL</span></p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider" data-i18n="hudFlaskPh">錐形瓶 pH 值</p>
+                    <p id="currentPHContainer" class="text-lg font-mono font-extrabold text-rose-500"><span id="currentPH">1.00</span></p>
+                </div>
+            </div>
+
+            <!-- 實驗台主體 SVG 動畫 -->
+            <div class="relative w-full max-w-[280px] h-[480px] my-4 flex items-center justify-center">
+                
+                <svg id="titrationSVG" class="w-full h-full" viewBox="0 0 240 420" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 1. 實驗鐵支架 (Iron Stand) -->
+                    <rect x="30" y="385" width="140" height="15" rx="3" fill="#475569" />
+                    <rect x="65" y="20" width="8" height="365" fill="#64748b" />
+                    
+                    <!-- 滴定管夾 (Burette Clamps) -->
+                    <rect x="58" y="75" width="22" height="6" fill="#94a3b8" />
+                    <rect x="58" y="200" width="22" height="6" fill="#94a3b8" />
+                    <circle cx="78" cy="78" r="5" fill="#475569" />
+                    <circle cx="78" cy="203" r="5" fill="#475569" />
+
+                    <!-- 2. 滴定管 (Burette) -->
+                    <rect x="110" y="30" width="12" height="210" rx="1" fill="none" stroke="#94a3b8" stroke-width="1.5" />
+                    <path d="M 108 30 L 124 30 L 120 34 L 112 34 Z" fill="#94a3b8" />
+                    <!-- 刻度 -->
+                    <g stroke="#64748b" stroke-width="0.5">
+                        <line x1="110" y1="40" x2="115" y2="40" /> <text x="124" y="42" font-size="5" font-family="monospace" fill="#475569" text-anchor="start">0</text>
+                        <line x1="110" y1="60" x2="113" y2="60" />
+                        <line x1="110" y1="80" x2="115" y2="80" /> <text x="124" y="82" font-size="5" font-family="monospace" fill="#475569" text-anchor="start">10</text>
+                        <line x1="110" y1="100" x2="113" y2="100" />
+                        <line x1="110" y1="120" x2="115" y2="120" /> <text x="124" y="122" font-size="5" font-family="monospace" fill="#475569" text-anchor="start">20</text>
+                        <line x1="110" y1="140" x2="113" y2="140" />
+                        <line x1="110" y1="160" x2="115" y2="160" /> <text x="124" y="162" font-size="5" font-family="monospace" fill="#475569" text-anchor="start">30</text>
+                        <line x1="110" y1="180" x2="113" y2="180" />
+                        <line x1="110" y1="200" x2="115" y2="200" /> <text x="124" y="202" font-size="5" font-family="monospace" fill="#475569" text-anchor="start">40</text>
+                        <line x1="110" y1="220" x2="113" y2="220" />
+                        <line x1="110" y1="230" x2="115" y2="230" /> <text x="124" y="232" font-size="5" font-family="monospace" fill="#475569" text-anchor="start">50</text>
+                    </g>
+                    
+                    <!-- 滴定管內液體 -->
+                    <rect id="buretteLiquid" class="liquid-level" x="111" y="40" width="10" height="190" fill="#e2e8f0" opacity="0.6" />
+                    
+                    <!-- 下端錐形與滴管尖 -->
+                    <path d="M 110 240 L 116 260 L 116 275 L 114 278 L 118 278 L 116 275 L 116 260 L 122 240 Z" fill="none" stroke="#94a3b8" stroke-width="1" />
+                    
+                    <!-- 控制閥 (Stopcock) -->
+                    <circle cx="116" cy="254" r="5" fill="#475569" />
+                    <line id="stopcockHandle" x1="108" y1="254" x2="124" y2="254" stroke="#0f172a" stroke-width="3" stroke-linecap="round" />
+
+                    <!-- 動態水滴 -->
+                    <circle id="dripDrop" class="hidden" cx="116" cy="282" r="2.5" fill="#38bdf8" />
+
+                    <!-- 錐形瓶 (Erlenmeyer Flask) -->
+                    <path d="M 102 328 L 110 328 L 110 340 L 80 385 L 152 385 L 122 340 L 122 328 L 130 328 M 122 328 L 102 328" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linejoin="round" />
+                    <!-- 瓶內溶液 (動態變色且液位上升) -->
+                    <path id="flaskLiquid" d="M 97 360 L 135 360 L 149 382 L 83 382 Z" fill="#ffffff" opacity="0.85" stroke="none" class="transition-all duration-300" />
+                </svg>
+
+                <!-- 背景微光 -->
+                <div id="phGlow" class="absolute inset-0 bg-transparent rounded-2xl pointer-events-none transition-all duration-1000 opacity-10"></div>
+            </div>
+
+            <!-- 底部：滴定管溶液刻度設定與補充 -->
+            <div class="w-full flex flex-col sm:flex-row justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs gap-2">
+                <span class="text-slate-500 font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-fill-drip text-teal-600"></i>
+                    <span data-i18n="refillTitle">設定/補充滴定管起始讀數：</span>
+                </span>
+                <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+                    <input type="number" id="refillVolumeInput" min="0.00" max="45.00" step="0.05" value="0.00" 
+                           class="w-16 bg-white text-slate-700 border border-slate-200 rounded-lg py-1 px-1.5 font-mono font-bold text-center focus:outline-none focus:ring-1 focus:ring-teal-500">
+                    <span class="text-slate-500 font-mono font-bold">mL</span>
+                    <button onclick="handleRefill()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg font-bold transition-all shadow-xs flex items-center gap-1">
+                        <span data-i18n="btnRefill">確定裝填</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右側：滴定曲線與挑戰答題區 (3/12 columns) -->
+        <section class="lg:col-span-3 flex flex-col gap-6">
+            
+            <!-- 1. pH 滴定曲線即時繪圖 -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-line text-teal-600"></i>
+                        <span data-i18n="curveTitle">即時 pH 滴定曲線</span>
+                    </h2>
+                    <!-- 隱藏/顯示開關 -->
+                    <label class="relative inline-flex items-center cursor-pointer scale-90">
+                        <input type="checkbox" id="toggleCurveCheckbox" class="sr-only peer" checked onchange="toggleCurveVisibility()">
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+                    </label>
+                </div>
+
+                <!-- 曲線畫布與遮罩容器 -->
+                <div class="relative bg-slate-50 rounded-xl p-1 border border-slate-100 h-[180px] overflow-hidden">
+                    <canvas id="curveCanvas" class="w-full h-full"></canvas>
+                    
+                    <!-- 盲滴隱藏遮罩 -->
+                    <div id="curveMask" class="hidden absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center p-4 text-center z-20 transition-all duration-300">
+                        <div class="bg-amber-500/10 text-amber-400 p-2 rounded-full mb-2">
+                            <i class="fa-solid fa-eye-slash text-xl"></i>
+                        </div>
+                        <p class="text-xs font-bold text-slate-200" data-i18n="blindActive">盲滴模式已啟動</p>
+                        <p class="text-[10px] text-slate-400 mt-1" data-i18n="blindDesc">請專注觀察左側錐形瓶指示劑的顏色突變來判定終點！</p>
+                    </div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span id="labelAxisX">X: 滴入體積 (mL)</span>
+                    <span id="labelAxisY">Y: pH 值</span>
+                </div>
+            </div>
+
+            <!-- 2. 線上測驗挑戰區 -->
+            <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl p-5 shadow-md flex-grow flex flex-col justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-teal-400 mb-3 flex items-center gap-2 border-b border-slate-700 pb-2">
+                        <i class="fa-solid fa-trophy"></i>
+                        <span data-i18n="quizTitle">化學大師：未知濃度挑戰</span>
+                    </h2>
+                    
+                    <p class="text-xs text-slate-300 leading-relaxed mb-4" data-i18n="quizDesc">
+                        每次重置實驗，系統都會**隨機生成**一個錐形瓶內未知濃度的樣品。
+                        請透過精準滴定找出當等當點（變色瞬間）時所消耗的滴定液體積，並計算出未知溶液的濃度。
+                    </p>
+
+                    <!-- 計算公式卡片 -->
+                    <div class="bg-slate-700/50 p-3 rounded-xl border border-slate-600/50 mb-4 text-xs">
+                        <p class="text-teal-300 font-bold mb-1"><i class="fa-solid fa-calculator"></i> <span data-i18n="quizFormula">滴定計算公式：</span></p>
+                        <p id="formulaText" class="font-mono text-[11px] text-slate-200">
+                            $M_{\text{酸}} \times V_{\text{酸}} = M_{\text{鹼}} \times V_{\text{鹼}}$
+                        </p>
+                    </div>
+
+                    <!-- 作答輸入區 -->
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1" data-i18n="quizInputLabel">錐形瓶內溶液濃度預估 (M)</label>
+                            <div class="relative rounded-lg shadow-sm">
+                                <input type="number" id="userAnswer" step="0.001" placeholder="例如: 0.125" 
+                                       class="w-full bg-slate-700 text-white font-mono font-bold placeholder-slate-400 border border-slate-600 rounded-lg py-2 pl-3 pr-10 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent text-sm">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span class="text-slate-400 text-xs font-mono font-bold">M</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-700/60 space-y-2">
+                    <button onclick="checkAnswer()" class="w-full bg-teal-500 hover:bg-teal-400 active:scale-95 text-slate-900 font-extrabold py-2.5 px-4 rounded-xl shadow-md transition-all text-sm">
+                        <span data-i18n="btnSubmit">提交答案</span>
+                    </button>
+                    <!-- 回饋訊息 -->
+                    <div id="challengeFeedback" class="hidden text-xs py-2 px-3 rounded-lg font-medium text-center"></div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- 底部資訊 -->
+    <footer class="bg-slate-800 text-slate-400 text-center py-4 text-xs border-t border-slate-700">
+        <p data-i18n="footerText">© 2026 互動式化學虛擬實驗室. 專門為中學及大學先修化學課程設計的酸鹼中和滴定法模擬器.</p>
+    </footer>
+
+    <!-- 實驗指南/說明彈窗 (Modal) -->
+    <div id="helpModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-teal-600"></i>
+                    <span data-i18n="guideModalTitle">實驗原理與操作指南</span>
+                </h3>
+                <button onclick="closeHelpModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4 text-sm text-slate-600 leading-relaxed">
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1" data-i18n="guideObjTitle">💡 實驗目的</h4>
+                    <p data-i18n="guideObjDesc">利用已知濃度的標準溶液（在滴定管中），準確測定未知濃度的溶液（在錐形瓶中）。</p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1" data-i18n="guideTheoryTitle">🧪 酸鹼強弱與指示劑選擇</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li data-i18n="guideTheory1"><strong>強酸 + 強鹼</strong>：等當點在 pH = 7.00，突變範圍極大（pH 3~11），酚酞和甲基橙皆適用。</li>
+                        <li data-i18n="guideTheory2"><strong>弱酸（乙酸）+ 強鹼（NaOH）</strong>：等當點偏向<strong>鹼性</strong>（pH &gt; 7），最適合使用<strong>酚酞</strong>（無色 $\rightarrow$ 粉紅）。</li>
+                        <li data-i18n="guideTheory3"><strong>強酸（HCl/H₂SO₄）+ 弱鹼（氨水）</strong>：等當點偏向<strong>酸性</strong>（pH &lt; 7），最適合使用<strong>甲基橙</strong>（紅 $\rightarrow$ 橙 $\rightarrow$ 黃）。</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-800 mb-1" data-i18n="guideBlindTitle">🎯 教學新特色：盲滴模式</h4>
+                    <p data-i18n="guideBlindDesc">關閉右側的「顯示 pH 滴定曲線」開關可以進入<strong>盲滴挑戰</strong>。這能模擬真實實驗環境，考驗您透過瓶中指示劑顏色的些微漸變（例如甲基橙的橙黃轉移，或酚酞的微粉紅持久度）來精準判讀滴定終點的能力！</p>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-3 border-t text-right">
+                <button onclick="closeHelpModal()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-5 rounded-lg text-sm transition-colors">
+                    <span data-i18n="btnStart">開始實驗</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 雙語翻譯字典 (Bilingual Translation Dictionary) ---
+        const i18n = {
+            zh: {
+                navTitle: "互動式酸鹼滴定虛擬實驗室",
+                navSubtitle: "資深化學老師精心設計 · 專屬 AI 輔助教材",
+                navTag: "🎓 高中化學 / AP化學 - 實驗篇",
+                btnGuide: "實驗指南",
+                step1Title: "步驟一：實驗參數配置",
+                labelTitrationType: "選擇滴定方向",
+                optBaseTitratesAcid: "鹼 (滴定管) 滴定 酸 (錐形瓶)",
+                optAcidTitratesBase: "酸 (滴定管) 滴定 鹼 (錐形瓶)",
+                labelAcidType: "選擇酸的種類",
+                optHCl: "鹽酸 / 氫氯酸 (HCl, 一元強酸)",
+                optH2SO4: "硫酸 (H₂SO₄, 二元強酸)",
+                optCH3COOH: "乙酸 / 醋酸 (CH₃COOH, 一元弱酸)",
+                labelBaseType: "選擇鹼的種類",
+                optNaOH: "氫氧化鈉 (NaOH, 一元強鹼)",
+                optNH3: "氨水 (NH₃, 一元弱鹼)",
+                labelIndicator: "選擇指示劑",
+                indicatorMo: "甲基橙",
+                rangeMo: "pH 3.1 (紅) - 4.4 (黃)",
+                indicatorPp: "酚酞",
+                rangePp: "pH 8.2 (無) - 10.0 (粉紅)",
+                infoBuretteSol: "滴定管內溶液",
+                infoFlaskSol: "錐形瓶溶液",
+                infoConc: "濃度",
+                infoVol: "體積",
+                infoUnknown: "未知 (待測定)",
+                step2Title: "步驟二：滴定操作面板",
+                labelStopcock: "控制閥開度 (滴定速度)",
+                speed0: "關閉",
+                speed1: "微滴 (極慢)",
+                speed2: "逐滴 (慢)",
+                speed3: "連續 (快)",
+                btnAddDrop: "加入單滴 (0.05mL)",
+                btnReset: "重置實驗",
+                step3Title: "步驟三：滴定數據紀錄",
+                btnLog: "記錄當前讀數",
+                thTrial: "次數",
+                thInitial: "起始讀數 (mL)",
+                thFinal: "終點讀數 (mL)",
+                thTitre: "消耗體積 (mL)",
+                emptyRecord: "尚未記錄任何滴定數據",
+                hudBuretteReading: "滴定管讀數",
+                hudVolAdded: "已滴入體積",
+                hudFlaskPh: "錐形瓶 pH 值",
+                refillTitle: "設定/補充滴定管起始讀數：",
+                btnRefill: "確定裝填",
+                curveTitle: "即時 pH 滴定曲線",
+                blindActive: "盲滴模式已啟動",
+                blindDesc: "請專注觀察左側錐形瓶指示劑的顏色突變來判定終點！",
+                axisX: "X: 滴入體積 (mL)",
+                axisY: "Y: pH 值",
+                quizTitle: "化學大師：未知濃度挑戰",
+                quizDesc: "每次重置實驗，系統都會隨機生成一個錐形瓶內未知濃度的樣品。請透過精準滴定找出當等當點（變色瞬間）時所消耗的滴定液體積，並計算出未知溶液的濃度。",
+                quizFormula: "滴定計算公式：",
+                quizInputLabel: "錐形瓶內溶液濃度預估 (M)",
+                btnSubmit: "提交答案",
+                footerText: "© 2026 互動式化學虛擬實驗室. 專門為中學及大學先修化學課程設計的酸鹼中和滴定法模擬器.",
+                guideModalTitle: "實驗原理與操作指南",
+                guideObjTitle: "💡 實驗目的",
+                guideObjDesc: "利用已知濃度的標準溶液（在滴定管中），準確測定未知濃度的溶液（在錐形瓶中）。",
+                guideTheoryTitle: "🧪 酸鹼強弱與指示劑選擇",
+                guideTheory1: "強酸 + 強鹼：等當點在 pH = 7.00，突變範圍極大（pH 3~11），酚酞和甲基橙皆適用。",
+                guideTheory2: "弱酸（乙酸）+ 強鹼（NaOH）：等當點偏向鹼性（pH > 7），最適合使用酚酞（無色 → 粉紅）。",
+                guideTheory3: "強酸（HCl/H₂SO₄）+ 弱鹼（氨水）：等當點偏向酸性（pH < 7），最適合使用甲基橙（紅 → 橙 → 黃）。",
+                guideBlindTitle: "🎯 教學新特色：盲滴模式",
+                guideBlindDesc: "關閉右側的「顯示 pH 滴定曲線」開關可以進入盲滴挑戰。這能模擬真實實驗環境，考驗您透過瓶中指示劑顏色的些微漸變（例如甲基橙的橙黃轉移，或酚酞的微粉紅持久度）來精準判讀滴定終點的能力！",
+                btnStart: "開始實驗",
+                speedTextClosed: "已關閉",
+                speedTextDrip: "微滴 (~0.02 mL/滴)",
+                speedTextDropwise: "逐滴 (~0.05 mL/滴)",
+                speedTextContinuous: "連續流出 (~1.2 mL/秒)",
+                placeholderAns: "例如: 0.125",
+                errNoAns: "請輸入您的計算結果！",
+                feedbackCorrect: "答對了！恭喜您！",
+                feedbackCorrectDesc: "未知溶液的真實濃度是 {real} M，您的答案 {user} M 非常精準！",
+                feedbackClose: "非常接近了！",
+                feedbackCloseDesc: "真實濃度為 {real} M。您的答案存在微小誤差，可以試著再次滴定，精準捕捉指示劑變色瞬間喔！",
+                feedbackWrong: "仍需努力！",
+                feedbackWrongDesc: "真值是 {real} M。請檢查：是否錯過了滴定終點？或者代入計算公式時當量計量有誤？",
+                lblNaOH: "NaOH (強鹼)",
+                lblNH3: "NH₃ (弱鹼)",
+                lblHCl: "HCl (強酸)",
+                lblH2SO4: "H₂SO₄ (強酸)",
+                lblCH3COOH: "CH₃COOH (弱酸)"
+            },
+            en: {
+                navTitle: "Interactive Acid-Base Titration Lab",
+                navSubtitle: "Designed by Senior Chemistry Teacher · Dedicated AI-Powered Courseware",
+                navTag: "🎓 HS / AP Chemistry - Lab Edition",
+                btnGuide: "Lab Guide",
+                step1Title: "Step 1: Configuration",
+                labelTitrationType: "Titration Direction",
+                optBaseTitratesAcid: "Base (Burette) titrates Acid (Flask)",
+                optAcidTitratesBase: "Acid (Burette) titrates Base (Flask)",
+                labelAcidType: "Select Acid Type",
+                optHCl: "Hydrochloric Acid (HCl, Strong Monoprotic)",
+                optH2SO4: "Sulfuric Acid (H₂SO₄, Strong Diprotic)",
+                optCH3COOH: "Acetic Acid (CH₃COOH, Weak Monoprotic)",
+                labelBaseType: "Select Base Type",
+                optNaOH: "Sodium Hydroxide (NaOH, Strong Monobasic)",
+                optNH3: "Ammonia Solution (NH₃, Weak Monobasic)",
+                labelIndicator: "Select Indicator",
+                indicatorMo: "Methyl Orange",
+                rangeMo: "pH 3.1 (Red) - 4.4 (Yellow)",
+                indicatorPp: "Phenolphthalein",
+                rangePp: "pH 8.2 (Colorless) - 10.0 (Pink)",
+                infoBuretteSol: "Burette solution",
+                infoFlaskSol: "Flask solution",
+                infoConc: "Conc.",
+                infoVol: "Vol.",
+                infoUnknown: "Unknown (To determine)",
+                step2Title: "Step 2: Titration Control Panel",
+                labelStopcock: "Stopcock Openness (Speed)",
+                speed0: "Closed",
+                speed1: "Drip (Very Slow)",
+                speed2: "Dropwise (Slow)",
+                speed3: "Continuous (Fast)",
+                btnAddDrop: "Add Drop (0.05mL)",
+                btnReset: "Reset",
+                step3Title: "Step 3: Titration Record Table",
+                btnLog: "Log Current Reading",
+                thTrial: "Trial",
+                thInitial: "Initial (mL)",
+                thFinal: "Final (mL)",
+                thTitre: "Titre (mL)",
+                emptyRecord: "No titration records yet",
+                hudBuretteReading: "Burette Reading",
+                hudVolAdded: "Volume Added",
+                hudFlaskPh: "Flask pH",
+                refillTitle: "Set/Refill Burette Initial Reading:",
+                btnRefill: "Confirm Fill",
+                curveTitle: "Live pH Titration Curve",
+                blindActive: "Blind Titration Active",
+                blindDesc: "Focus on the color change of the indicator in the flask to determine the endpoint!",
+                axisX: "X: Volume Added (mL)",
+                axisY: "Y: pH Value",
+                quizTitle: "Chemistry Master: Concentration Challenge",
+                quizDesc: "Each reset randomly generates an unknown sample concentration in the flask. Perform a precise titration to find the titre volume at the equivalence point (color change) and calculate the concentration.",
+                quizFormula: "Titration Formula:",
+                quizInputLabel: "Estimated Concentration (M)",
+                btnSubmit: "Submit Answer",
+                footerText: "© 2026 Interactive Chemistry Virtual Lab. Designed for high school and AP Chemistry titration simulations.",
+                guideModalTitle: "Experimental Principles & Operating Guide",
+                guideObjTitle: "💡 Objective",
+                guideObjDesc: "Use a standard solution of known concentration (in the burette) to accurately determine the concentration of an unknown solution (in the flask).",
+                guideTheoryTitle: "🧪 Acid-Base Strengths & Indicator Selection",
+                guideTheory1: "Strong Acid + Strong Base: Equivalence point is at pH 7.00, with a large pH jump (pH 3~11). Both phenolphthalein and methyl orange are suitable.",
+                guideTheory2: "Weak Acid (Acetic Acid) + Strong Base (NaOH): Equivalence point is basic (pH > 7). Best with phenolphthalein (colorless → pink).",
+                guideTheory3: "Strong Acid (HCl/H₂SO₄) + Weak Base (Ammonia): Equivalence point is acidic (pH < 7). Best with methyl orange (red → orange → yellow).",
+                guideBlindTitle: "🎯 New Feature: Blind Titration Mode",
+                guideBlindDesc: "Turning off the 'Show pH Titration Curve' switch activates Blind Mode. This simulates real laboratory environments, testing your ability to read the endpoint purely from subtle indicator color changes!",
+                btnStart: "Start Experiment",
+                speedTextClosed: "Closed",
+                speedTextDrip: "Drip (~0.02 mL/drop)",
+                speedTextDropwise: "Dropwise (~0.05 mL/drop)",
+                speedTextContinuous: "Continuous (~1.2 mL/sec)",
+                placeholderAns: "e.g., 0.125",
+                errNoAns: "Please enter your calculation result!",
+                feedbackCorrect: "Correct! Congratulations!",
+                feedbackCorrectDesc: "The real concentration of the unknown sample is {real} M. Your answer {user} M is extremely accurate!",
+                feedbackClose: "Very Close!",
+                feedbackCloseDesc: "The real concentration is {real} M. There is a tiny deviation. Try to titrate again to capture the exact endpoint!",
+                feedbackWrong: "Keep Trying!",
+                feedbackWrongDesc: "The true value is {real} M. Please check if you overshot the endpoint, or did a math mistake in titration formula.",
+                lblNaOH: "NaOH (Strong Base)",
+                lblNH3: "NH₃ (Weak Base)",
+                lblHCl: "HCl (Strong Acid)",
+                lblH2SO4: "H₂SO₄ (Strong Acid)",
+                lblCH3COOH: "CH₃COOH (Weak Acid)"
+            }
+        };
+
+        // --- 實驗數據與狀態變數 ---
+        let config = {
+            type: 'base_titrates_acid',    // 'base_titrates_acid' or 'acid_titrates_base'
+            acidType: 'HCl',               // 'HCl', 'H2SO4', or 'CH3COOH'
+            baseType: 'NaOH',              // 'NaOH' or 'NH3'
+            indicator: 'methylOrange',     // or phenolphthalein
+            buretteConc: 0.100,            // 滴定管溶液濃度 (M)
+            flaskVolume: 20.00,            // 錐形瓶內溶液體積 (mL)
+            flaskConcReal: 0.125,          // 錐形瓶內溶液真實濃度 (M) - 隨機生成
+            maxBuretteCap: 50.00           // 滴定管最大容量 (mL)
+        };
+
+        let state = {
+            initialReading: 0.0,           // 起始滴定管讀數 (mL)
+            titrantAdded: 0.0,             // 已滴入體積 (mL)
+            currentPH: 1.0,                // 錐形瓶目前 pH
+            dripIntervalId: null,          // 滴水定時器ID
+            currentDripSpeed: 0,           // 當前滴速級別 (0:關閉, 1:微滴, 2:逐滴, 3:連續)
+            history: [],                   // 記錄歷史
+            showCurve: true,               // 是否顯示曲線
+            lang: 'zh'                     // 當前語系
+        };
+
+        // 解離常數常量 (25°C)
+        const Ka_CH3COOH = 1.8e-5;
+        const Kb_NH3 = 1.8e-5;
+        const Kw = 1e-14;
+
+        // --- 核心水溶液電荷中性多項式方程二分搜尋引擎 ---
+        function getNetCharge(x, Ca, Cb, acidType, baseType) {
+            let charge = x - (Kw / x); // [H+] - [OH-]
+            
+            // 弱酸/強酸陰離子 contribution
+            if (acidType === 'HCl' || acidType === 'H2SO4') {
+                charge -= Ca; 
+            } else if (acidType === 'CH3COOH') {
+                charge -= Ca * Ka_CH3COOH / (x + Ka_CH3COOH); 
+            }
+            
+            // 弱鹼/強鹼陽離子 contribution
+            if (baseType === 'NaOH') {
+                charge += Cb; 
+            } else if (baseType === 'NH3') {
+                const Ka_NH4 = Kw / Kb_NH3;
+                charge += Cb * x / (x + Ka_NH4); 
+            }
+            
+            return charge;
+        }
+
+        function solvePH(vAcid, cAcid, vBase, cBase) {
+            const totalVolL = (vAcid + vBase) / 1000;
+            if (totalVolL <= 0) return 7.0;
+
+            const acidProtons = config.acidType === 'H2SO4' ? 2 : 1;
+            
+            const Ca = (vAcid / 1000) * cAcid * acidProtons / totalVolL;
+            const Cb = (vBase / 1000) * cBase / totalVolL;
+
+            let low = 1e-15;
+            let high = 2.0; 
+            let h = 1e-7;
+            
+            for (let i = 0; i < 60; i++) {
+                h = (low + high) / 2;
+                let charge = getNetCharge(h, Ca, Cb, config.acidType, config.baseType);
+                if (charge < 0) {
+                    low = h; 
+                } else {
+                    high = h; 
+                }
+                if (high - low < 1e-16) break;
+            }
+            
+            let pH = -Math.log10(h);
+            if (pH < 0) pH = 0;
+            if (pH > 14) pH = 14;
+            return pH;
+        }
+
+        // --- 初始化頁面 ---
+        window.onload = function() {
+            initExperiment();
+            setupCanvas();
+        };
+
+        // 語系切換函數
+        function toggleLanguage() {
+            state.lang = state.lang === 'zh' ? 'en' : 'zh';
+            
+            // 1. 更新所有帶 data-i18n 的靜態文字
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[state.lang][key]) {
+                    el.textContent = i18n[state.lang][key];
+                }
+            });
+
+            // 2. 更新輸入框的 Placeholder 提示文字
+            document.getElementById('userAnswer').placeholder = i18n[state.lang].placeholderAns;
+
+            // 3. 更新動態 UI、曲線與其軸線標題
+            updateUI();
+            drawCurve();
+            
+            // 4. 重置紀錄表格的文字
+            renderRecordTable();
+        }
+
+        // --- 1. 實驗重置與初始化 ---
+        function initExperiment() {
+            stopTitration();
+            
+            // 讀取設定
+            config.type = document.getElementById('titrationType').value;
+            config.acidType = document.getElementById('acidType').value;
+            config.baseType = document.getElementById('baseType').value;
+            
+            // 智慧型隨機濃度生成 (確保等當點消耗體積落在 10~36 mL 之間)
+            const acidProtons = config.acidType === 'H2SO4' ? 2 : 1;
+            const baseOHs = 1; 
+            
+            const targetVolumeRatio = Math.random() * 1.3 + 0.6; // V_burette / V_flask = 0.6 至 1.9
+
+            if (config.type === 'base_titrates_acid') {
+                const equivFlaskConc = (config.buretteConc * targetVolumeRatio * baseOHs) / acidProtons;
+                config.flaskConcReal = +equivFlaskConc.toFixed(3);
+            } else {
+                const equivFlaskConc = (config.buretteConc * targetVolumeRatio * acidProtons) / baseOHs;
+                config.flaskConcReal = +equivFlaskConc.toFixed(3);
+            }
+
+            // 安全極限保護
+            if (config.flaskConcReal < 0.02) config.flaskConcReal = 0.025;
+            if (config.flaskConcReal > 0.35) config.flaskConcReal = 0.300;
+
+            // 動態更新計算公式提示
+            const formulaElem = document.getElementById('formulaText');
+            if (config.acidType === 'H2SO4') {
+                formulaElem.innerHTML = `$2 \\times M_{\\text{酸}} \\times V_{\\text{酸}} = M_{\\text{鹼}} \\times V_{\\text{鹼}}$`;
+            } else {
+                formulaElem.innerHTML = `$M_{\\text{酸}} \\times V_{\\text{酸}} = M_{\\text{鹼}} \\times V_{\\text{鹼}}$`;
+            }
+
+            // 重置體積狀態
+            state.initialReading = 0.0;
+            document.getElementById('refillVolumeInput').value = "0.00";
+            state.titrantAdded = 0.0;
+            state.currentPH = calculatePH(0.0);
+            
+            // 清理挑戰區回饋
+            document.getElementById('userAnswer').value = '';
+            const feedback = document.getElementById('challengeFeedback');
+            feedback.className = 'hidden';
+
+            // UI 更新
+            updateUI();
+            // 重新繪製新曲線
+            drawCurve();
+        }
+
+        // 重置滴定過程
+        function resetTitration() {
+            stopTitration();
+            state.titrantAdded = 0.0;
+            state.currentPH = calculatePH(0.0);
+            updateUI();
+            drawCurve();
+            
+            const feedback = document.getElementById('challengeFeedback');
+            feedback.className = 'hidden';
+            document.getElementById('userAnswer').value = '';
+        }
+
+        // 處理裝填與自訂起始讀數
+        function handleRefill() {
+            let val = parseFloat(document.getElementById('refillVolumeInput').value);
+            if (isNaN(val) || val < 0) {
+                val = 0.0;
+            } else if (val > 45.0) {
+                val = 45.0; 
+            }
+            
+            val = +val.toFixed(2);
+            document.getElementById('refillVolumeInput').value = val.toFixed(2);
+            
+            stopTitration();
+            document.getElementById('dripSpeedRange').value = 0;
+            handleSpeedSlider(0);
+            
+            state.initialReading = val;
+            state.titrantAdded = 0.0;
+            state.currentPH = calculatePH(0.0);
+            
+            updateUI();
+            drawCurve();
+        }
+
+        // --- 2. 指示劑設定與色彩算法 ---
+        function setIndicator(indicatorName) {
+            config.indicator = indicatorName;
+            
+            const btnMo = document.getElementById('indicator-mo');
+            const btnPp = document.getElementById('indicator-pp');
+            
+            if (indicatorName === 'methylOrange') {
+                btnMo.className = "border-2 border-amber-500 bg-amber-50 text-amber-800 font-bold py-2.5 px-3 rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:shadow-md";
+                btnPp.className = "border-2 border-slate-200 bg-white text-slate-600 font-bold py-2.5 px-3 rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:border-pink-500 hover:bg-pink-50 hover:text-pink-800";
+            } else {
+                btnMo.className = "border-2 border-slate-200 bg-white text-slate-600 font-bold py-2.5 px-3 rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:border-amber-500 hover:bg-amber-50 hover:text-amber-800";
+                btnPp.className = "border-2 border-pink-500 bg-pink-50 text-pink-800 font-bold py-2.5 px-3 rounded-xl flex flex-col items-center justify-center transition-all duration-200 hover:shadow-md";
+            }
+            
+            updateFlaskLiquid();
+        }
+
+        function getIndicatorColor(pH) {
+            if (config.indicator === 'phenolphthalein') {
+                if (pH <= 8.2) {
+                    return 'rgba(241, 245, 249, 0.4)';
+                } else if (pH >= 10.0) {
+                    return 'rgba(244, 63, 94, 0.85)';
+                } else {
+                    const ratio = (pH - 8.2) / 1.8;
+                    const r = Math.round(241 + (244 - 241) * ratio);
+                    const g = Math.round(245 - (245 - 63) * ratio);
+                    const b = Math.round(249 - (249 - 94) * ratio);
+                    const alpha = 0.4 + (0.85 - 0.4) * ratio;
+                    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                }
+            } else {
+                if (pH <= 3.1) {
+                    return 'rgba(239, 68, 68, 0.85)';
+                } else if (pH >= 4.4) {
+                    return 'rgba(234, 179, 8, 0.8)';
+                } else {
+                    const ratio = (pH - 3.1) / 1.3;
+                    const r = 239;
+                    const g = Math.round(68 + (179 - 68) * ratio);
+                    const b = Math.round(68 - (68 - 8) * ratio);
+                    const alpha = 0.85;
+                    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                }
+            }
+        }
+
+        // --- 3. 滴定核心理論：對接精確 [H+] 解算器 ---
+        function calculatePH(volumeAdded) {
+            const vBurette = volumeAdded;
+            const vFlask = config.flaskVolume;
+            
+            const isBaseTitrant = config.type === 'base_titrates_acid';
+            
+            const vAcid = isBaseTitrant ? vFlask : vBurette;
+            const cAcid = isBaseTitrant ? config.flaskConcReal : config.buretteConc;
+            
+            const vBase = isBaseTitrant ? vBurette : vFlask;
+            const cBase = isBaseTitrant ? config.buretteConc : config.flaskConcReal;
+
+            return solvePH(vAcid, cAcid, vBase, cBase);
+        }
+
+        // --- 4. 動態滴液控制 ---
+        function handleSpeedSlider(val) {
+            state.currentDripSpeed = parseInt(val);
+            stopTitration();
+
+            const stopcockHandle = document.getElementById('stopcockHandle');
+            const dripDrop = document.getElementById('dripDrop');
+            const speedText = document.getElementById('speedValText');
+
+            if (state.currentDripSpeed === 0) {
+                stopcockHandle.setAttribute('transform', 'rotate(0 116 254)');
+                dripDrop.classList.add('hidden');
+                speedText.textContent = i18n[state.lang].speedTextClosed;
+                speedText.className = "font-mono font-bold text-slate-500";
+            } else {
+                dripDrop.classList.remove('hidden');
+                dripDrop.classList.add('drip');
+                
+                let intervalTime = 1000;
+                let volumePerTick = 0.05;
+
+                if (state.currentDripSpeed === 1) {
+                    stopcockHandle.setAttribute('transform', 'rotate(30 116 254)');
+                    intervalTime = 1500;
+                    volumePerTick = 0.02;
+                    speedText.textContent = i18n[state.lang].speedTextDrip;
+                    speedText.className = "font-mono font-bold text-teal-500";
+                } else if (state.currentDripSpeed === 2) {
+                    stopcockHandle.setAttribute('transform', 'rotate(60 116 254)');
+                    intervalTime = 600;
+                    volumePerTick = 0.05;
+                    speedText.textContent = i18n[state.lang].speedTextDropwise;
+                    speedText.className = "font-mono font-bold text-cyan-500";
+                } else if (state.currentDripSpeed === 3) {
+                    stopcockHandle.setAttribute('transform', 'rotate(90 116 254)');
+                    intervalTime = 120;
+                    volumePerTick = 0.15;
+                    speedText.textContent = i18n[state.lang].speedTextContinuous;
+                    speedText.className = "font-mono font-bold text-rose-500";
+                }
+
+                state.dripIntervalId = setInterval(() => {
+                    executeDrip(volumePerTick);
+                }, intervalTime);
+            }
+        }
+
+        function stopTitration() {
+            if (state.dripIntervalId) {
+                clearInterval(state.dripIntervalId);
+                state.dripIntervalId = null;
+            }
+            const dripDrop = document.getElementById('dripDrop');
+            if (dripDrop) dripDrop.classList.remove('drip');
+        }
+
+        function addSingleDrip() {
+            if (state.currentDripSpeed > 0) return;
+            
+            const dripDrop = document.getElementById('dripDrop');
+            dripDrop.classList.remove('hidden');
+            
+            dripDrop.style.animation = 'none';
+            dripDrop.offsetHeight; 
+            dripDrop.style.animation = 'drip-down 0.3s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards';
+
+            executeDrip(0.05);
+
+            setTimeout(() => {
+                dripDrop.classList.add('hidden');
+                dripDrop.style.animation = '';
+            }, 300);
+        }
+
+        function executeDrip(volume) {
+            const currentReading = state.initialReading + state.titrantAdded;
+            if (currentReading >= config.maxBuretteCap) {
+                stopTitration();
+                document.getElementById('dripSpeedRange').value = 0;
+                handleSpeedSlider(0);
+                return;
+            }
+
+            state.titrantAdded = +(state.titrantAdded + volume).toFixed(2);
+            
+            const nextReading = state.initialReading + state.titrantAdded;
+            if (nextReading > config.maxBuretteCap) {
+                state.titrantAdded = +(config.maxBuretteCap - state.initialReading).toFixed(2);
+            }
+
+            state.currentPH = calculatePH(state.titrantAdded);
+
+            updateUI();
+            drawCurve();
+        }
+
+        // --- 5. UI 與液位、變色動態效果渲染 ---
+        function updateUI() {
+            const currentReading = state.initialReading + state.titrantAdded;
+            
+            document.getElementById('titrantAdded').textContent = state.titrantAdded.toFixed(2);
+            document.getElementById('buretteReading').textContent = currentReading.toFixed(2);
+            
+            const phSpan = document.getElementById('currentPH');
+            if (state.showCurve) {
+                phSpan.textContent = state.currentPH.toFixed(2);
+            } else {
+                phSpan.textContent = "??";
+            }
+
+            // 雙語化酸鹼動態標籤名稱
+            const acidName = config.acidType === 'H2SO4' ? i18n[state.lang].lblH2SO4 : (config.acidType === 'CH3COOH' ? i18n[state.lang].lblCH3COOH : i18n[state.lang].lblHCl);
+            const baseName = config.baseType === 'NH3' ? i18n[state.lang].lblNH3 : i18n[state.lang].lblNaOH;
+
+            if (config.type === 'base_titrates_acid') {
+                document.getElementById('buretteSolName').textContent = baseName;
+                document.getElementById('flaskSolName').textContent = acidName;
+                document.getElementById('flaskSolName2').textContent = acidName;
+            } else {
+                document.getElementById('buretteSolName').textContent = acidName;
+                document.getElementById('flaskSolName').textContent = baseName;
+                document.getElementById('flaskSolName2').textContent = baseName;
+            }
+
+            // X / Y 軸線文字多國語系
+            document.getElementById('labelAxisX').textContent = i18n[state.lang].axisX;
+            document.getElementById('labelAxisY').textContent = i18n[state.lang].axisY;
+
+            // 滴定管液面計算
+            const buretteLiquid = document.getElementById('buretteLiquid');
+            const percentRemaining = (config.maxBuretteCap - currentReading) / config.maxBuretteCap;
+            const newHeight = 190 * percentRemaining;
+            const newY = 40 + (190 - newHeight);
+            
+            buretteLiquid.setAttribute('height', newHeight);
+            buretteLiquid.setAttribute('y', newY);
+
+            // 動態更新錐形瓶液位高度與貼壁座標
+            updateFlaskLiquid();
+            
+            // 背景微光提示
+            const phGlow = document.getElementById('phGlow');
+            if (state.showCurve) {
+                const color = getIndicatorColor(state.currentPH);
+                phGlow.style.backgroundColor = color;
+            } else {
+                phGlow.style.backgroundColor = 'transparent';
+            }
+        }
+
+        // 精準模擬液體注入並沿著錐形瓶斜壁上升
+        function updateFlaskLiquid() {
+            const flaskLiquid = document.getElementById('flaskLiquid');
+            const added = state.titrantAdded;
+            
+            // 計算液面 Y 座標。初始 20mL 在 y=375 處，隨增加（最高50mL）液面上升至最高 y=350
+            const y = 375 - (added / 50) * 25;
+            
+            // 根據 y 座標，計算貼合錐形瓶內壁（斜率 1.5）的左右端點
+            const xLeft = 110.5 - (y - 340) / 1.5;
+            const xRight = 121.5 + (y - 340) / 1.5;
+            
+            // 錐形瓶內液體底部固定為底板 y = 384
+            const xBotLeft = 81.5;
+            const xBotRight = 150.5;
+            
+            // 繪製封閉的液位 Polygon 區塊
+            const pathD = `M ${xLeft} ${y} L ${xRight} ${y} L ${xBotRight} 384 L ${xBotLeft} 384 Z`;
+            flaskLiquid.setAttribute('d', pathD);
+            
+            // 指示劑動態變色
+            const color = getIndicatorColor(state.currentPH);
+            flaskLiquid.setAttribute('fill', color);
+        }
+
+        // --- 6. 記錄保存與渲染系統 ---
+        function logCurrentData() {
+            if (state.history.some(item => item.added === state.titrantAdded)) return;
+
+            const count = state.history.length + 1;
+            state.history.push({
+                count: count,
+                start: state.initialReading,
+                added: state.titrantAdded
+            });
+
+            renderRecordTable();
+        }
+
+        function renderRecordTable() {
+            const recordTableBody = document.getElementById('recordTableBody');
+            recordTableBody.innerHTML = '';
+
+            if (state.history.length === 0) {
+                recordTableBody.innerHTML = `
+                    <tr id="emptyRow">
+                        <td colspan="4" class="p-4 text-center text-slate-400 italic">${i18n[state.lang].emptyRecord}</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            state.history.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-2 text-center font-bold">${item.count}</td>
+                    <td class="p-2 font-mono">${item.start.toFixed(2)}</td>
+                    <td class="p-2 font-mono">${(item.start + item.added).toFixed(2)}</td>
+                    <td class="p-2 font-mono font-bold text-teal-600">${item.added.toFixed(2)}</td>
+                `;
+                recordTableBody.appendChild(tr);
+            });
+            
+            recordTableBody.scrollTop = recordTableBody.scrollHeight;
+        }
+
+        // --- 7. pH 滴定曲線繪圖引擎 ---
+        let canvas, ctx;
+        function setupCanvas() {
+            canvas = document.getElementById('curveCanvas');
+            ctx = canvas.getContext('2d');
+            
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            drawCurve();
+        }
+
+        function drawCurve() {
+            if (!canvas) return;
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+            
+            ctx.clearRect(0, 0, width, height);
+
+            ctx.strokeStyle = '#f1f5f9';
+            ctx.lineWidth = 1;
+            for (let i = 1; i < 5; i++) {
+                const x = (width / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let i = 1; i < 4; i++) {
+                const y = (height / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '9px monospace';
+            ctx.fillText('pH 14', 5, 12);
+            ctx.fillText('pH 7', 5, height / 2 + 3);
+            ctx.fillText('pH 0', 5, height - 5);
+            ctx.fillText('50mL', width - 30, height - 5);
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 2;
+            
+            for (let v = 0; v <= 50; v += 0.2) {
+                const ph = calculatePH(v);
+                const x = (v / 50) * (width - 20) + 15;
+                const y = height - (ph / 14) * (height - 20) - 10;
+                
+                if (v === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            // 繪製指示劑變色範圍帶 (酚酞或甲基橙)
+            ctx.fillStyle = config.indicator === 'phenolphthalein' ? 'rgba(244, 63, 94, 0.08)' : 'rgba(245, 158, 11, 0.08)';
+            const rangeMinY = config.indicator === 'phenolphthalein' ? 8.2 : 3.1;
+            const rangeMaxY = config.indicator === 'phenolphthalein' ? 10.0 : 4.4;
+            
+            const rectY1 = height - (rangeMaxY / 14) * (height - 20) - 10;
+            const rectY2 = height - (rangeMinY / 14) * (height - 20) - 10;
+            ctx.fillRect(15, rectY1, width - 35, rectY2 - rectY1);
+
+            ctx.beginPath();
+            ctx.strokeStyle = config.indicator === 'phenolphthalein' ? '#ec4899' : '#f59e0b';
+            ctx.lineWidth = 3;
+            
+            const currentLimit = state.titrantAdded;
+            for (let v = 0; v <= currentLimit; v += 0.1) {
+                const ph = calculatePH(v);
+                const x = (v / 50) * (width - 20) + 15;
+                const y = height - (ph / 14) * (height - 20) - 10;
+                
+                if (v === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            if (state.titrantAdded > 0) {
+                const curX = (state.titrantAdded / 50) * (width - 20) + 15;
+                const curY = height - (state.currentPH / 14) * (height - 20) - 10;
+                
+                ctx.beginPath();
+                ctx.arc(curX, curY, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = '#ef4444';
+                ctx.fill();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+            }
+        }
+
+        // --- 8. 選擇性隱藏曲線控制 ---
+        function toggleCurveVisibility() {
+            state.showCurve = document.getElementById('toggleCurveCheckbox').checked;
+            const mask = document.getElementById('curveMask');
+            
+            if (state.showCurve) {
+                mask.classList.add('hidden');
+            } else {
+                mask.classList.remove('hidden');
+            }
+            
+            updateUI();
+        }
+
+        window.addEventListener('resize', () => {
+            if (canvas) {
+                setupCanvas();
+            }
+        });
+
+        // --- 9. 挑戰與答題邏輯 ---
+        function checkAnswer() {
+            const userAnswerInput = document.getElementById('userAnswer');
+            const userAnsVal = parseFloat(userAnswerInput.value);
+            const feedback = document.getElementById('challengeFeedback');
+            
+            if (isNaN(userAnsVal)) {
+                feedback.className = "text-xs py-2 px-3 rounded-lg font-medium text-center bg-amber-500/20 text-amber-300 block";
+                feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${i18n[state.lang].errNoAns}`;
+                return;
+            }
+
+            const realAns = config.flaskConcReal;
+            const percentError = Math.abs(userAnsVal - realAns) / realAns;
+
+            feedback.classList.remove('hidden');
+
+            if (percentError <= 0.02) {
+                feedback.className = "text-xs py-2 px-3 rounded-lg font-medium text-center bg-emerald-500/20 text-emerald-300 block";
+                feedback.innerHTML = `
+                    <p class="font-bold text-sm"><i class="fa-solid fa-square-check"></i> ${i18n[state.lang].feedbackCorrect}</p>
+                    <p class="mt-1">${i18n[state.lang].feedbackCorrectDesc.replace('{real}', realAns.toFixed(3)).replace('{user}', userAnsVal.toFixed(3))}</p>
+                `;
+            } else if (percentError <= 0.08) {
+                feedback.className = "text-xs py-2 px-3 rounded-lg font-medium text-center bg-cyan-500/20 text-cyan-200 block";
+                feedback.innerHTML = `
+                    <p class="font-bold"><i class="fa-solid fa-face-smile"></i> ${i18n[state.lang].feedbackClose}</p>
+                    <p class="mt-1">${i18n[state.lang].feedbackCloseDesc.replace('{real}', realAns.toFixed(3))}</p>
+                `;
+            } else {
+                feedback.className = "text-xs py-2 px-3 rounded-lg font-medium text-center bg-rose-500/20 text-rose-300 block";
+                feedback.innerHTML = `
+                    <p class="font-bold"><i class="fa-solid fa-circle-xmark"></i> ${i18n[state.lang].feedbackWrong}</p>
+                    <p class="mt-1">${i18n[state.lang].feedbackWrongDesc.replace('{real}', realAns.toFixed(3))}</p>
+                `;
+            }
+        }
+
+        // --- 10. 彈窗管理 ---
+        function openHelpModal() {
+            document.getElementById('helpModal').classList.remove('hidden');
+        }
+
+        setTimeout(() => {
+            openHelpModal();
+        }, 500);
+
+        function closeHelpModal() {
+            document.getElementById('helpModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>溫度滴定法：測量中和反應的等當點</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Hammer.js (用於支援手勢及拖拽平移) -->
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <!-- Chart.js Zoom Plugin CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- KaTeX (render $...$ 化學/數學符號) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        /* 試管/量熱器液體動畫 */
+        .liquid {
+            transition: height 0.5s ease, background-color 1s ease;
+        }
+        .stirrer-anim {
+            animation: stir 1s infinite linear;
+        }
+        @keyframes stir {
+            0% { transform: translateX(-2px) rotate(0deg); }
+            50% { transform: translateX(2px) rotate(5deg); }
+            100% { transform: translateX(-2px) rotate(0deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col">
+
+    <!-- 導航欄 / 標題 -->
+    <header class="bg-gradient-to-r from-blue-700 via-indigo-700 to-violet-800 text-white shadow-md px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/10 p-2 rounded-lg">
+                    <i data-lucide="beaker" class="w-8 h-8 text-yellow-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-wide">溫度滴定模擬實驗室</h1>
+                    <p class="text-xs text-blue-100 mt-1">探究強酸與強鹼中和反應的焓變與等當點</p>
+                </div>
+            </div>
+            <!-- 模式切換 -->
+            <div class="flex bg-black/20 p-1 rounded-lg border border-white/10 text-sm">
+                <button id="tab-lab" onclick="switchMainTab('lab')" class="px-4 py-1.5 rounded-md font-medium transition bg-white text-blue-900 shadow">
+                    <i data-lucide="play-circle" class="w-4 h-4 inline mr-1"></i>進行實驗
+                </button>
+                <button id="tab-theory" onclick="switchMainTab('theory')" class="px-4 py-1.5 rounded-md font-medium transition text-white hover:bg-white/10">
+                    <i data-lucide="book-open" class="w-4 h-4 inline mr-1"></i>反應原理
+                </button>
+                <button id="tab-quiz" onclick="switchMainTab('quiz')" class="px-4 py-1.5 rounded-md font-medium transition text-white hover:bg-white/10">
+                    <i data-lucide="help-circle" class="w-4 h-4 inline mr-1"></i>自我評估
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主體內容 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6">
+        
+        <!-- ==================== 實驗室頁面 ==================== -->
+        <div id="section-lab" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- 左側：參數配置與控制面板 (4 Cols) -->
+            <div class="lg:col-span-4 flex flex-col gap-6">
+                
+                <!-- 實驗參數設定 -->
+                <div class="glass-panel rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-200">
+                        <i data-lucide="sliders" class="text-blue-600"></i>
+                        <h2 class="text-lg font-bold text-slate-800">1. 設定實驗參數</h2>
+                    </div>
+                    
+                    <!-- 實驗類型選擇 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">實驗方法</label>
+                        <select id="exp-method" onchange="onMethodChange()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="titration">滴定法 (固定酸量，逐次加入鹼)</option>
+                            <option value="jobs">連續變化法 (總體積固定 = 50 mL)</option>
+                        </select>
+                    </div>
+
+                    <!-- 溶液參數 -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">
+                                鹽酸 $HCl(aq)$ 濃度: <span id="label-conc-acid" class="text-blue-600 font-bold">1.0</span> M
+                            </label>
+                            <input id="param-conc-acid" type="range" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateParamLabels()" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">
+                                氫氧化鈉 $NaOH(aq)$ 濃度: <span id="label-conc-base" class="text-emerald-600 font-bold">1.0</span> M
+                            </label>
+                            <input id="param-conc-base" type="range" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateParamLabels()" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600">
+                        </div>
+
+                        <div id="acid-vol-container">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">
+                                初始 $HCl(aq)$ 體積: <span id="label-vol-acid" class="text-blue-600 font-bold">25.0</span> mL
+                            </label>
+                            <input id="param-vol-acid" type="range" min="10" max="40" step="5" value="25" oninput="updateParamLabels()" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">起始溫度 (°C)</label>
+                                <input id="param-temp-init" type="number" min="15" max="30" step="0.5" value="25.0" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-sm text-center">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">每次加入體積 (mL)</label>
+                                <select id="param-step-vol" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-sm text-center">
+                                    <option value="2">2.0 mL</option>
+                                    <option value="5">5.0 mL</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 誤差設定 -->
+                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-sm font-semibold text-slate-600">真實熱損耗與讀數誤差
+                                <span class="block text-xs font-normal text-slate-400 mt-0.5">開啟後會模擬真實實驗：溫度計有 ±0.15°C 讀數誤差，熱量亦會隨時間散失，所以初始讀數可能與設定值略有出入（例如 25.0 → 25.12°C），屬正常現象。</span>
+                            </span>
+                            <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+                                <input type="checkbox" id="param-real-error" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 操作按鈕 -->
+                    <div class="mt-6 grid grid-cols-2 gap-3">
+                        <button id="btn-start" onclick="startExperiment()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                            <i data-lucide="play" class="w-4 h-4"></i>初始化實驗
+                        </button>
+                        <button id="btn-reset" onclick="resetExperiment()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>重置
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 實驗操作儀表板 -->
+                <div class="glass-panel rounded-2xl p-5 shadow-sm flex-grow flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-200">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="activity" class="text-emerald-600"></i>
+                                <h2 class="text-lg font-bold text-slate-800">2. 實驗操作台</h2>
+                            </div>
+                            <span id="experiment-status-badge" class="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded font-medium">未初始化</span>
+                        </div>
+
+                        <!-- 狀態讀數顯示 -->
+                        <div class="grid grid-cols-3 gap-2 text-center mb-6">
+                            <div class="bg-blue-50/50 rounded-xl p-2.5 border border-blue-100">
+                                <div class="text-[10px] text-slate-500 font-medium">已加 $NaOH$ 體積</div>
+                                <div id="display-v-added" class="text-lg font-black text-blue-700">0.0 <span class="text-xs">mL</span></div>
+                            </div>
+                            <div class="bg-emerald-50/50 rounded-xl p-2.5 border border-emerald-100">
+                                <div class="text-[10px] text-slate-500 font-medium">總溶液體積</div>
+                                <div id="display-v-total" class="text-lg font-black text-emerald-700">-- <span class="text-xs">mL</span></div>
+                            </div>
+                            <div class="bg-rose-50/50 rounded-xl p-2.5 border border-rose-100">
+                                <div class="text-[10px] text-slate-500 font-medium">當前溫度</div>
+                                <div id="display-temp" class="text-lg font-black text-rose-700">-- <span class="text-xs">°C</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 添加鹼操作 -->
+                        <div id="action-titrate-controls" class="space-y-4 opacity-50 pointer-events-none">
+                            <div class="bg-indigo-50/40 p-3 rounded-xl border border-indigo-100 flex flex-col items-center">
+                                <span class="text-xs text-indigo-700 font-bold mb-2">滴定控制</span>
+                                <div class="flex gap-2 w-full">
+                                    <button onclick="addBaseIncrement()" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm">
+                                        <i data-lucide="plus-circle" class="w-4 h-4"></i>加入 <span class="add-step-txt">2.0</span> mL NaOH
+                                    </button>
+                                    <button id="btn-auto" onclick="toggleAutoTitrate()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 rounded-xl transition flex items-center justify-center">
+                                        <i data-lucide="play" id="icon-auto" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="action-jobs-controls" class="space-y-4 hidden opacity-50 pointer-events-none">
+                            <div class="bg-purple-50/40 p-4 rounded-xl border border-purple-100">
+                                <span class="text-xs text-purple-700 font-bold block mb-2 text-center">選擇調配比例（總體積 50 mL）</span>
+                                <div class="grid grid-cols-2 gap-2 text-xs mb-3 text-center">
+                                    <div class="bg-blue-100/50 p-1.5 rounded">HCl: <span id="jobs-hcl-v" class="font-bold text-blue-700">25</span> mL</div>
+                                    <div class="bg-emerald-100/50 p-1.5 rounded">NaOH: <span id="jobs-naoh-v" class="font-bold text-emerald-700">25</span> mL</div>
+                                </div>
+                                <input id="jobs-slider" type="range" min="5" max="45" step="5" value="25" oninput="updateJobsSlider()" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600 mb-4">
+                                <button onclick="measureJobsPoint()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm">
+                                    <i data-lucide="thermometer" class="w-4 h-4"></i>混合並量度溫度
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 提示訊息框 -->
+                    <div id="lab-tips" class="mt-4 p-3 bg-amber-50 text-amber-800 text-xs rounded-xl border border-amber-200 flex items-start gap-2">
+                        <i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i>
+                        <span>請先設定左上方的實驗參數，並點擊「<strong>初始化實驗</strong>」按鈕開始。</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 中間：儀器與動畫 (4 Cols) -->
+            <div class="lg:col-span-4 glass-panel rounded-2xl p-5 shadow-sm flex flex-col items-center justify-between min-h-[500px]">
+                <div class="w-full flex justify-between items-center pb-2 border-b border-slate-200 mb-4">
+                    <span class="text-sm font-bold text-slate-700">實驗儀器示意圖</span>
+                    <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded">卡計 (Calorimeter)</span>
+                </div>
+
+                <!-- 儀器容器 -->
+                <div class="relative w-full flex-grow flex justify-center items-center py-6">
+                    <div class="relative w-64 h-96 flex justify-center">
+                        
+                        <!-- 滴定管架與滴定管 (僅在滴定模式顯示) -->
+                        <div id="visual-burette" class="absolute top-0 transition-opacity duration-300 flex flex-col items-center">
+                            <!-- 滴定管頂端 -->
+                            <div class="w-2.5 h-44 border-l-2 border-r-2 border-slate-400 bg-slate-100/40 relative flex items-end">
+                                <!-- 刻度線 -->
+                                <div class="absolute inset-y-0 left-0 w-full flex flex-col justify-between text-[6px] text-slate-500 pointer-events-none px-0.5 py-1">
+                                    <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span>
+                                </div>
+                                <!-- 滴定管內的液體 (鹼) -->
+                                <div id="burette-liquid" class="w-full bg-emerald-300/60 transition-all duration-500" style="height: 100%;"></div>
+                            </div>
+                            <!-- 滴定管開關閥 -->
+                            <div class="w-6 h-6 bg-slate-600 rounded-sm relative flex items-center justify-center">
+                                <div id="burette-valve" class="w-1.5 h-8 bg-amber-500 rounded transition-transform duration-300"></div>
+                            </div>
+                            <!-- 滴定管尖端 -->
+                            <div class="w-1 h-8 bg-slate-400"></div>
+                            <!-- 滴下液體動畫 -->
+                            <div id="drop-animation" class="w-1.5 h-1.5 bg-emerald-400 rounded-full absolute bottom-[-15px] opacity-0"></div>
+                        </div>
+
+                        <!-- 量熱器 (發泡聚苯乙烯杯) -->
+                        <div class="absolute bottom-0 w-44 h-36 border-4 border-slate-300 bg-white rounded-b-3xl flex flex-col justify-end overflow-hidden shadow-inner">
+                            <!-- 泡沫塑料杯內襯外觀 -->
+                            <div class="absolute inset-0 border-t-8 border-slate-200/50 bg-slate-50"></div>
+                            
+                            <!-- 杯內液體 -->
+                            <div id="beaker-liquid" class="liquid w-full bg-blue-300/40 relative" style="height: 30%;">
+                                <!-- 攪拌產生的微小氣泡動畫 -->
+                                <div id="bubbles" class="absolute inset-0 opacity-0 pointer-events-none overflow-hidden">
+                                    <div class="absolute bottom-1 left-1/4 w-1 h-1 bg-white/60 rounded-full animate-bounce"></div>
+                                    <div class="absolute bottom-2 left-2/4 w-1.5 h-1.5 bg-white/60 rounded-full animate-ping"></div>
+                                    <div class="absolute bottom-1 left-3/4 w-1 h-1 bg-white/60 rounded-full animate-bounce"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 溫度計 -->
+                        <div class="absolute bottom-4 right-14 w-4 h-56 flex flex-col items-center">
+                            <!-- 玻璃桿 -->
+                            <div class="w-2 h-44 bg-slate-100 border border-slate-400 rounded-t-full relative flex items-end">
+                                <!-- 紅色水銀柱 -->
+                                <div id="thermometer-bar" class="w-full bg-red-500 transition-all duration-500" style="height: 40%;"></div>
+                            </div>
+                            <!-- 溫度計泡 -->
+                            <div class="w-4 h-4 bg-red-500 rounded-full border border-slate-400 mt-[-1px]"></div>
+                        </div>
+
+                        <!-- 攪拌棒 -->
+                        <div id="visual-stirrer" class="absolute bottom-10 left-16 w-3 h-48 border-l-2 border-r-2 border-slate-400 rounded-b-lg"></div>
+
+                    </div>
+                </div>
+
+                <!-- 微觀科學小教室 -->
+                <div class="w-full bg-slate-50 rounded-xl p-3 border border-slate-200 text-xs">
+                    <div class="font-bold text-slate-700 flex items-center gap-1 mb-1">
+                        <i data-lucide="eye" class="w-3.5 h-3.5 text-blue-600"></i>
+                        <span>微觀分子視角 (Microscopic View)</span>
+                    </div>
+                    <p id="micro-view-text" class="text-slate-600 leading-relaxed">
+                        卡計中目前主要為強酸 $HCl$ 溶液，含有大量的自由移動的 $H^+$ 離子（以 $H_3O^+$ 形式存在）及 $Cl^-$ 離子。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 右側：數據記錄與動態圖表 (4 Cols) -->
+            <div class="lg:col-span-4 flex flex-col gap-6">
+                
+                <!-- 數據表格 -->
+                <div class="glass-panel rounded-2xl p-5 shadow-sm flex flex-col h-[230px]">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="table" class="text-indigo-600"></i>
+                            <h2 class="text-base font-bold text-slate-800">3. 實驗數據記錄表</h2>
+                        </div>
+                        <button onclick="clearDataTable()" class="text-xs text-rose-600 hover:underline">清空數據</button>
+                    </div>
+                    
+                    <div class="overflow-y-auto flex-grow rounded-lg border border-slate-200">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-50 text-slate-600 text-xs sticky top-0 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-3 py-2">次數</th>
+                                    <th id="table-col-header" class="px-3 py-2">已加 NaOH (mL)</th>
+                                    <th class="px-3 py-2">溫度 (°C)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="data-table-body" class="divide-y divide-slate-100 text-slate-700">
+                                <!-- 動態載入 -->
+                                <tr>
+                                    <td colspan="3" class="px-3 py-6 text-center text-slate-400 text-xs">暫無數據，請開始進行實驗...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 即時圖表與外推分析 -->
+                <div class="glass-panel rounded-2xl p-5 shadow-sm flex-grow flex flex-col h-[320px]">
+                    <div class="flex items-center justify-between mb-2 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="line-chart" class="text-indigo-600"></i>
+                            <h2 class="text-base font-bold text-slate-800">4. 溫度變化關係圖</h2>
+                        </div>
+                        
+                        <!-- 縮放與還原工具列 -->
+                        <div class="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-lg border border-slate-200">
+                            <button onclick="zoomChart(1.15)" class="p-1 hover:bg-white hover:text-indigo-600 text-slate-600 rounded transition" title="放大">
+                                <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="zoomChart(0.85)" class="p-1 hover:bg-white hover:text-indigo-600 text-slate-600 rounded transition" title="縮小">
+                                <i data-lucide="zoom-out" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="resetChartZoom()" class="p-1 hover:bg-white hover:text-rose-600 text-slate-600 rounded transition" title="重置視角">
+                                <i data-lucide="maximize" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 畫布 -->
+                    <div class="flex-grow relative h-0">
+                        <canvas id="tempChart" class="w-full h-full"></canvas>
+                    </div>
+
+                    <!-- 外推法工具列 -->
+                    <div class="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1.5 text-xs shrink-0">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="chk-extrapolate" onchange="toggleExtrapolation()" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                <label for="chk-extrapolate" class="font-semibold text-indigo-700 cursor-pointer">啟用外推法(Extrapolation)分析</label>
+                            </div>
+                            <span class="text-[9px] text-slate-400">💡 可用鼠標滾輪/拖拽縮放平移圖表</span>
+                        </div>
+                        <div id="extrapolation-result" class="bg-rose-50 border border-rose-100 p-2 rounded-lg text-rose-700 text-center font-bold hidden">
+                            <i data-lucide="target" class="w-3.5 h-3.5 inline mr-1 text-rose-500"></i>
+                            外推等當點：<span id="calc-eq-vol" class="text-rose-600 underline">--</span> mL | 
+                            最高溫度：<span id="calc-eq-temp" class="text-rose-600 underline">--</span> °C
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ==================== 理論知識頁面 ==================== -->
+        <div id="section-theory" class="hidden glass-panel rounded-2xl p-6 shadow-sm max-w-4xl mx-auto space-y-6">
+            <h2 class="text-2xl font-black text-slate-900 border-b pb-3 flex items-center gap-2">
+                <i data-lucide="book-open" class="text-indigo-600 w-7 h-7"></i>
+                反應原理：為什麼能用溫度變化測量等當點？
+            </h2>
+
+            <div class="prose prose-slate max-w-none space-y-4">
+                <h3 class="text-lg font-bold text-indigo-700">1. 中和反應的熱化學 (Thermochemistry of Neutralization)</h3>
+                <p class="text-slate-600 leading-relaxed text-sm">
+                    當強酸與強鹼反應時，實質上的反應是氫離子 $H^+$（或水合氫離子 $H_3O^+$）與氫氧根離子 $OH^-$ 結合成水分子的反應：
+                </p>
+                <div class="bg-indigo-50/50 p-4 rounded-xl text-center font-mono text-sm border border-indigo-100 my-2">
+                    $$H^+(aq) + OH^-(aq) \rightarrow H_2O(l) \quad \Delta H = -57.3 \text{ kJ/mol}$$
+                </div>
+                <p class="text-slate-600 leading-relaxed text-sm">
+                    這是一個典型的**放熱反應 (Exothermic Reaction)**。每生成一摩爾水，就會釋放出大約 $57.3 \text{ kJ}$ 的熱量。
+                </p>
+
+                <h3 class="text-lg font-bold text-indigo-700">2. 溫度變化的兩個階段</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+                    <div class="bg-amber-50/50 p-4 rounded-xl border border-amber-100 text-sm">
+                        <h4 class="font-bold text-amber-800 mb-1 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span> 階段一：等當點前（持續升溫）
+                        </h4>
+                        <p class="text-slate-600 leading-relaxed text-xs">
+                            當你不斷加入 $NaOH$ 時，反應容器內仍有剩餘的 $H^+$。新加入的 $OH^-$ 會立即與 $H^+$ 反應釋放熱量，使溶液溫度持續上升。
+                        </p>
+                    </div>
+                    <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-sm">
+                        <h4 class="font-bold text-blue-800 mb-1 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span> 階段二：等當點後（溫度下降）
+                        </h4>
+                        <p class="text-slate-600 leading-relaxed text-xs">
+                            當酸被完全中和後（達到等當點），再繼續加入 $NaOH$ 便不會發生化學反應。此時，加入室溫下的 $NaOH$ 溶液僅會起到「稀釋」和「降溫」的作用，加之卡計與環境的熱交換，系統溫度開始緩慢下降。
+                        </p>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-indigo-700">3. 外推法 (Extrapolation Method)</h3>
+                <p class="text-slate-600 leading-relaxed text-sm">
+                    在實際實驗中，由於接近等當點時反應速率、局部混合以及向外散熱等因素，最高點附近的數據點往往呈圓弧狀而非尖銳折線。
+                </p>
+                <p class="text-slate-600 leading-relaxed text-sm">
+                    為了精確找出等當點，我們會使用**外推法**：
+                </p>
+                <ol class="list-decimal pl-6 text-sm text-slate-600 space-y-1">
+                    <li>對**上升階段**的前幾個點進行線性擬合，畫出直線 $L_1$。</li>
+                    <li>對**下降階段**的後幾個點進行線性擬合，畫出直線 $L_2$。</li>
+                    <li><strong>兩條直線的交點</strong>所對應的橫坐標（加入鹼的體積），即為理論上的**等當點（Equivalence Point）**。</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- ==================== 自我評估頁面 ==================== -->
+        <div id="section-quiz" class="hidden glass-panel rounded-2xl p-6 shadow-sm max-w-2xl mx-auto">
+            <div class="flex items-center justify-between border-b pb-3 mb-6">
+                <h2 class="text-2xl font-black text-slate-900 flex items-center gap-2">
+                    <i data-lucide="help-circle" class="text-indigo-600 w-7 h-7"></i>
+                    課堂自我評估
+                </h2>
+                <button onclick="generateNewQuiz()" class="text-xs bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-bold px-3 py-1.5 rounded-lg transition">
+                    隨機換題
+                </button>
+            </div>
+
+            <!-- 問題區域 -->
+            <div class="space-y-6">
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">化學計量學計算題</span>
+                    <p id="quiz-question" class="text-slate-700 font-medium text-sm mt-3 leading-relaxed">
+                        正在生成題目...
+                    </p>
+                </div>
+
+                <!-- 選項 -->
+                <div class="space-y-3" id="quiz-options">
+                    <!-- 動態載入 -->
+                </div>
+
+                <!-- 解析區域 -->
+                <div id="quiz-feedback" class="hidden p-4 rounded-xl text-sm border">
+                    <!-- 動態載入 -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 頁腳 -->
+    <footer class="bg-slate-900 text-slate-400 text-center py-6 border-t border-slate-800 text-xs mt-12">
+        <div class="max-w-7xl mx-auto px-6">
+            <p>© 2026 溫度滴定虛擬化學實驗室 - 專為化學教師與學生設計</p>
+            <p class="mt-2 text-slate-600">使用 HTML5, Tailwind CSS 與 Chart.js 構建</p>
+        </div>
+    </footer>
+
+    <!-- 全局提示框 Modal -->
+    <div id="toast-modal" class="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl border border-slate-100 text-center">
+            <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="check" class="text-emerald-600 w-6 h-6"></i>
+            </div>
+            <h3 id="toast-title" class="text-lg font-bold text-slate-800 mb-2">標題</h3>
+            <p id="toast-msg" class="text-sm text-slate-600 mb-6">內容訊息</p>
+            <button onclick="closeToast()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-xl transition text-sm">
+                確定
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // 初始化 Lucide 圖標
+        lucide.createIcons();
+
+        // 實驗狀態全局變量
+        let activeTab = 'lab';
+        let currentMethod = 'titration'; // 'titration' or 'jobs'
+        let expState = {
+            initialized: false,
+            vAcid: 25.0,     // 鹽酸體積 (mL)
+            cAcid: 1.0,      // 鹽酸濃度 (M)
+            cBase: 1.0,      // 氫氧化鈉濃度 (M)
+            vBaseAdded: 0,   // 已添加氫氧化鈉 (mL)
+            initTemp: 25.0,  // 初始溫度 (°C)
+            stepVol: 2.0,    // 每次加入體積 (mL)
+            useRealError: true,
+            dataPoints: []   // {x: volume_base, y: temp}
+        };
+
+        let autoInterval = null;
+        let chartInstance = null;
+
+        // 頁面加載時初始化圖表
+        window.onload = function() {
+            initChart();
+            updateParamLabels();
+            generateNewQuiz();
+        };
+
+        // 切換主分頁
+        function switchMainTab(tabName) {
+            activeTab = tabName;
+            
+            // 隱藏所有
+            document.getElementById('section-lab').classList.add('hidden');
+            document.getElementById('section-theory').classList.add('hidden');
+            document.getElementById('section-quiz').classList.add('hidden');
+
+            // 移除按鈕高亮
+            document.querySelectorAll('header button').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-blue-900', 'shadow');
+                btn.classList.add('text-white', 'hover:bg-white/10');
+            });
+
+            // 顯示目標與高亮按鈕
+            if (tabName === 'lab') {
+                document.getElementById('section-lab').classList.remove('hidden');
+                document.getElementById('tab-lab').classList.add('bg-white', 'text-blue-900', 'shadow');
+            } else if (tabName === 'theory') {
+                document.getElementById('section-theory').classList.remove('hidden');
+                document.getElementById('tab-theory').classList.add('bg-white', 'text-blue-900', 'shadow');
+            } else if (tabName === 'quiz') {
+                document.getElementById('section-quiz').classList.remove('hidden');
+                document.getElementById('tab-quiz').classList.add('bg-white', 'text-blue-900', 'shadow');
+            }
+        }
+
+        // 修改實驗類型
+        function onMethodChange() {
+            const method = document.getElementById('exp-method').value;
+            currentMethod = method;
+            resetExperiment();
+
+            const acidContainer = document.getElementById('acid-vol-container');
+            const actionTitrate = document.getElementById('action-titrate-controls');
+            const actionJobs = document.getElementById('action-jobs-controls');
+            const tableColHeader = document.getElementById('table-col-header');
+            const visualBurette = document.getElementById('visual-burette');
+
+            if (method === 'titration') {
+                acidContainer.classList.remove('hidden');
+                actionTitrate.classList.remove('hidden');
+                actionJobs.classList.add('hidden');
+                tableColHeader.innerText = '已加 NaOH (mL)';
+                visualBurette.style.opacity = '1';
+                document.getElementById('lab-tips').innerHTML = `<i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i><span>滴定法：固定酸的體積（例如 25.0 mL），逐次加入 $NaOH$。當酸被完全中和後，繼續加入鹼會使溫度下降。</span>`;
+            } else {
+                acidContainer.classList.add('hidden');
+                actionTitrate.classList.add('hidden');
+                actionJobs.classList.remove('hidden');
+                tableColHeader.innerText = '反應物組成 (HCl / NaOH mL)';
+                visualBurette.style.opacity = '0'; // 連續變化法一般直接混合，不用滴定管
+                document.getElementById('lab-tips').innerHTML = `<i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i><span>連續變化法：配置一系列 HCl 和 NaOH 混合液，使<strong>總體積固定為 50 mL</strong>。在等當比例時，放出的熱量最多，溫度升幅最大。</span>`;
+            }
+            lucide.createIcons();
+        }
+
+        // 更新滑桿數值文字
+        function updateParamLabels() {
+            const cAcid = parseFloat(document.getElementById('param-conc-acid').value);
+            const cBase = parseFloat(document.getElementById('param-conc-base').value);
+            const vAcid = parseFloat(document.getElementById('param-vol-acid').value);
+            const stepVol = parseFloat(document.getElementById('param-step-vol').value);
+
+            document.getElementById('label-conc-acid').innerText = cAcid.toFixed(1);
+            document.getElementById('label-conc-base').innerText = cBase.toFixed(1);
+            document.getElementById('label-vol-acid').innerText = vAcid.toFixed(1);
+            
+            document.querySelectorAll('.add-step-txt').forEach(el => {
+                el.innerText = stepVol.toFixed(1);
+            });
+        }
+
+        function updateJobsSlider() {
+            const hclV = parseInt(document.getElementById('jobs-slider').value);
+            const naohV = 50 - hclV;
+            document.getElementById('jobs-hcl-v').innerText = hclV;
+            document.getElementById('jobs-naoh-v').innerText = naohV;
+        }
+
+        // ==================== 物理化學核心演算引擎 ====================
+        function calculateTemperature(vAcid, cAcid, vBase, cBase, initTemp, useError, elapsedSteps = 1) {
+            // 熱化學常數
+            const deltaH = -57200; // J/mol (強酸強鹼中和熱)
+            const c_water = 4.18;   // J / (g * K)
+            const density = 1.0;    // g/mL
+
+            // 計算限制反應物與反應莫耳數
+            const molAcid = (vAcid / 1000) * cAcid;
+            const molBase = (vBase / 1000) * cBase;
+            const molReacted = Math.min(molAcid, molBase);
+
+            // 釋放的總熱量 (J)
+            const qReleased = molReacted * Math.abs(deltaH);
+
+            // 混合溶液總質量 (g)
+            const totalVolume = vAcid + vBase;
+            const mass = totalVolume * density;
+
+            // 理論溫升 (ΔT)
+            let deltaT = qReleased / (mass * c_water);
+
+            // 如果使用真實模式：模擬向外散熱以及讀數隨機擾動
+            if (useError) {
+                // 1. 卡計散熱（跟外部環境25度進行熱交換，隨步驟數累積）
+                const heatLossFactor = 0.015 * elapsedSteps; 
+                const tempAboveAmbient = (initTemp + deltaT) - 25.0;
+                deltaT -= tempAboveAmbient * heatLossFactor;
+
+                // 2. 溫度計偶然讀數誤差 (±0.15 °C)
+                const randomNoise = (Math.random() - 0.5) * 0.3;
+                deltaT += randomNoise;
+            }
+
+            return Math.max(initTemp, initTemp + deltaT);
+        }
+
+        // ==================== 實驗控制邏輯 ====================
+        
+        // 1. 初始化實驗
+        function startExperiment() {
+            expState.cAcid = parseFloat(document.getElementById('param-conc-acid').value);
+            expState.cBase = parseFloat(document.getElementById('param-conc-base').value);
+            expState.vAcid = parseFloat(document.getElementById('param-vol-acid').value);
+            expState.initTemp = parseFloat(document.getElementById('param-temp-init').value);
+            expState.stepVol = parseFloat(document.getElementById('param-step-vol').value);
+            expState.useRealError = document.getElementById('param-real-error').checked;
+
+            expState.vBaseAdded = 0;
+            expState.initialized = true;
+            expState.dataPoints = [];
+
+            // 狀態變更
+            document.getElementById('experiment-status-badge').innerText = '進行中';
+            document.getElementById('experiment-status-badge').className = 'bg-emerald-500 text-white text-xs px-2 py-1 rounded font-bold';
+            
+            // 啟用控制面板
+            if (currentMethod === 'titration') {
+                document.getElementById('action-titrate-controls').classList.remove('opacity-50', 'pointer-events-none');
+                // 初始化第一個數據點（未加鹼）
+                const temp = calculateTemperature(expState.vAcid, expState.cAcid, 0, expState.cBase, expState.initTemp, expState.useRealError, 0);
+                expState.dataPoints.push({ x: 0, y: parseFloat(temp.toFixed(2)) });
+                
+                // 更新顯示
+                document.getElementById('display-v-added').innerHTML = `0.0 <span class="text-xs">mL</span>`;
+                document.getElementById('display-v-total').innerHTML = `${expState.vAcid.toFixed(1)} <span class="text-xs">mL</span>`;
+                document.getElementById('display-temp').innerHTML = `${temp.toFixed(1)} <span class="text-xs">°C</span>`;
+
+                // 動畫
+                updateVisuals(0);
+                document.getElementById('micro-view-text').innerHTML = `卡計中目前只有強酸 $HCl$。含有大量的自由移動 $H^+$ 與 $Cl^-$ 離子，溫度穩定維持在 <strong>${temp.toFixed(1)}°C</strong>。`;
+            } else {
+                document.getElementById('action-jobs-controls').classList.remove('opacity-50', 'pointer-events-none');
+                document.getElementById('display-v-added').innerHTML = `--`;
+                document.getElementById('display-v-total').innerHTML = `50.0 <span class="text-xs">mL</span>`;
+                document.getElementById('display-temp').innerHTML = `--`;
+                document.getElementById('micro-view-text').innerHTML = `請拖動上方滑桿選擇不同的 $HCl(aq)$ 與 $NaOH(aq)$ 體積比例（確保總體積不變），點擊「混合並量度」進行數據收集。`;
+            }
+
+            updateDataTable();
+            updateChart();
+
+            // 新做實驗時，重置圖表縮放視角以顯示全部數據
+            resetChartZoom();
+
+            document.getElementById('lab-tips').innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i><span class="text-emerald-800">實驗已成功初始化！請使用操作面板開始加入反應物。</span>`;
+            lucide.createIcons();
+        }
+
+        // 重置實驗
+        function resetExperiment() {
+            if (autoInterval) {
+                clearInterval(autoInterval);
+                autoInterval = null;
+                document.getElementById('icon-auto').setAttribute('data-lucide', 'play');
+                lucide.createIcons();
+            }
+
+            expState.initialized = false;
+            expState.dataPoints = [];
+            expState.vBaseAdded = 0;
+
+            document.getElementById('experiment-status-badge').innerText = '未初始化';
+            document.getElementById('experiment-status-badge').className = 'bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded font-medium';
+
+            document.getElementById('action-titrate-controls').classList.add('opacity-50', 'pointer-events-none');
+            document.getElementById('action-jobs-controls').classList.add('opacity-50', 'pointer-events-none');
+
+            document.getElementById('display-v-added').innerHTML = `0.0 <span class="text-xs">mL</span>`;
+            document.getElementById('display-v-total').innerHTML = `--`;
+            document.getElementById('display-temp').innerHTML = `--`;
+
+            // 恢復視覺效果
+            document.getElementById('beaker-liquid').style.height = '30%';
+            document.getElementById('beaker-liquid').style.backgroundColor = 'rgba(147, 197, 253, 0.4)';
+            document.getElementById('thermometer-bar').style.height = '40%';
+            document.getElementById('burette-liquid').style.height = '100%';
+
+            clearDataTable();
+            updateChart();
+            resetChartZoom();
+
+            document.getElementById('lab-tips').innerHTML = `<i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5"></i><span>請先設定左上方的實驗參數，並點擊「<strong>初始化實驗</strong>」按鈕開始。</span>`;
+            lucide.createIcons();
+        }
+
+        // 滴定法：每次加入鹼
+        function addBaseIncrement() {
+            if (!expState.initialized || expState.vBaseAdded >= 50) return;
+
+            // 計算新體積
+            const increment = expState.stepVol;
+            expState.vBaseAdded += increment;
+
+            const temp = calculateTemperature(
+                expState.vAcid, 
+                expState.cAcid, 
+                expState.vBaseAdded, 
+                expState.cBase, 
+                expState.initTemp, 
+                expState.useRealError,
+                expState.dataPoints.length
+            );
+
+            // 保存數據點
+            expState.dataPoints.push({ x: expState.vBaseAdded, y: parseFloat(temp.toFixed(2)) });
+
+            // 更新顯示
+            document.getElementById('display-v-added').innerHTML = `${expState.vBaseAdded.toFixed(1)} <span class="text-xs">mL</span>`;
+            document.getElementById('display-v-total').innerHTML = `${(expState.vAcid + expState.vBaseAdded).toFixed(1)} <span class="text-xs">mL</span>`;
+            document.getElementById('display-temp').innerHTML = `${temp.toFixed(1)} <span class="text-xs">°C</span>`;
+
+            // 觸發滴定管動畫與微觀文字更替
+            triggerTitrationAnimation(temp);
+            updateDataTable();
+            updateChart();
+
+            // 超過50mL自動停止
+            if (expState.vBaseAdded >= 50) {
+                if (autoInterval) toggleAutoTitrate();
+                showToast("滴定完成", "滴定管已空（達 50 mL）。請使用右側圖表啟用「外推法」尋找等當點。");
+            }
+        }
+
+        // 連續變化法：混合並量度
+        function measureJobsPoint() {
+            if (!expState.initialized) return;
+
+            const hclV = parseInt(document.getElementById('jobs-slider').value);
+            const naohV = 50 - hclV;
+
+            // 計算溫度
+            const temp = calculateTemperature(
+                hclV,
+                expState.cAcid,
+                naohV,
+                expState.cBase,
+                expState.initTemp,
+                expState.useRealError,
+                2 // 連續變化法熱損失少，因為是一次性混合，傳入較少衰減
+            );
+
+            // 檢查是否已存在該比例的數據，有則替換，無則添加
+            const existingIdx = expState.dataPoints.findIndex(pt => pt.x === naohV);
+            if (existingIdx !== -1) {
+                expState.dataPoints[existingIdx].y = parseFloat(temp.toFixed(2));
+            } else {
+                expState.dataPoints.push({ x: naohV, y: parseFloat(temp.toFixed(2)) });
+            }
+
+            // 依 $NaOH$ 體積升序排序數據
+            expState.dataPoints.sort((a, b) => a.x - b.x);
+
+            // 更新儀表板
+            document.getElementById('display-v-added').innerHTML = `NaOH: ${naohV} mL`;
+            document.getElementById('display-temp').innerHTML = `${temp.toFixed(1)} <span class="text-xs">°C</span>`;
+
+            // 視覺動畫
+            triggerJobsAnimation(hclV, naohV, temp);
+            updateDataTable();
+            updateChart();
+        }
+
+        // 自動滴定切換
+        function toggleAutoTitrate() {
+            const btn = document.getElementById('btn-auto');
+            const icon = document.getElementById('icon-auto');
+            
+            if (autoInterval) {
+                // 停止
+                clearInterval(autoInterval);
+                autoInterval = null;
+                icon.setAttribute('data-lucide', 'play');
+                btn.className = "bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 rounded-xl transition flex items-center justify-center";
+            } else {
+                // 開始
+                icon.setAttribute('data-lucide', 'square');
+                btn.className = "bg-red-600 hover:bg-red-700 text-white font-bold px-4 rounded-xl transition flex items-center justify-center";
+                autoInterval = setInterval(() => {
+                    addBaseIncrement();
+                }, 1200);
+            }
+            lucide.createIcons();
+        }
+
+        // ==================== 視覺動畫特效控制 ====================
+        
+        // 滴定法動畫
+        function triggerTitrationAnimation(targetTemp) {
+            const valve = document.getElementById('burette-valve');
+            const drop = document.getElementById('drop-animation');
+            const stirrer = document.getElementById('visual-stirrer');
+            const bubbles = document.getElementById('bubbles');
+
+            // 1. 閥門旋轉 (打開)
+            valve.style.transform = 'rotate(90deg)';
+            
+            // 2. 水滴下落
+            drop.style.opacity = '1';
+            drop.classList.add('animate-ping');
+            
+            // 3. 攪拌棒起動
+            stirrer.classList.add('stirrer-anim');
+            bubbles.style.opacity = '1';
+
+            // 更新滴定管和燒杯液面高度
+            updateVisuals(targetTemp);
+
+            // 1秒後恢復
+            setTimeout(() => {
+                valve.style.transform = 'rotate(0deg)';
+                drop.style.opacity = '0';
+                drop.classList.remove('animate-ping');
+                stirrer.classList.remove('stirrer-anim');
+                bubbles.style.opacity = '0';
+            }, 800);
+        }
+
+        // 連續變化法動畫
+        function triggerJobsAnimation(hclV, naohV, targetTemp) {
+            const stirrer = document.getElementById('visual-stirrer');
+            const bubbles = document.getElementById('bubbles');
+
+            stirrer.classList.add('stirrer-anim');
+            bubbles.style.opacity = '1';
+
+            // 更新液面與溫度計
+            updateVisuals(targetTemp);
+
+            // 反應過後，根據等當點改變顏色深度 (中和完全呈中性，可用酸鹼指示劑擬真)
+            const beakerLiquid = document.getElementById('beaker-liquid');
+            
+            // 模擬酚酞（指示劑）在酸鹼下的顏色變化
+            const eqNaOH = (hclV * expState.cAcid) / expState.cBase;
+            if (naohV > eqNaOH) {
+                // 鹼性，變為粉紅色
+                beakerLiquid.style.backgroundColor = 'rgba(236, 72, 153, 0.4)'; // pink-500
+            } else {
+                // 酸性/中性，無色
+                beakerLiquid.style.backgroundColor = 'rgba(147, 197, 253, 0.3)'; // blue-300
+            }
+
+            setTimeout(() => {
+                stirrer.classList.remove('stirrer-anim');
+                bubbles.style.opacity = '0';
+            }, 1000);
+
+            // 更新微觀視角文字
+            const theoreticalEq = (50 * expState.cAcid) / (expState.cAcid + expState.cBase);
+            if (Math.abs(naohV - theoreticalEq) < 1) {
+                document.getElementById('micro-view-text').innerHTML = `<strong>此時為最接近化學計量比的比例！</strong> $H^+$ 與 $OH^-$ 幾乎完全中和，放出的熱量達到最大值，混合液溫度升至最高！`;
+            } else if (naohV < theoreticalEq) {
+                document.getElementById('micro-view-text').innerHTML = `此反應組分中，<strong>$NaOH$ 是限制反應物</strong>。所有的 $OH^-$ 均被中和，但燒杯中仍有過剩的 $H^+$。`;
+            } else {
+                document.getElementById('micro-view-text').innerHTML = `此反應組分中，<strong>$HCl$ 是限制反應物</strong>。所有的 $H^+$ 均被中和，溶液中存在過剩的 $OH^-$，呈鹼性（酚酞呈粉紅色）。`;
+            }
+        }
+
+        function updateVisuals(targetTemp) {
+            // 溫度計水銀柱計算：假設範圍為 15°C - 45°C
+            const tempMin = 15.0;
+            const tempMax = 45.0;
+            const percentTemp = Math.min(100, Math.max(0, ((targetTemp - tempMin) / (tempMax - tempMin)) * 100));
+            document.getElementById('thermometer-bar').style.height = `${percentTemp}%`;
+
+            if (currentMethod === 'titration') {
+                // 滴定管內液體液面 (50 mL 代表 0%)
+                const burettePercent = ((50 - expState.vBaseAdded) / 50) * 100;
+                document.getElementById('burette-liquid').style.height = `${burettePercent}%`;
+
+                // 燒杯液面上升 (25 mL 佔 30%，最高 75 mL 佔 80%)
+                const totalVol = expState.vAcid + expState.vBaseAdded;
+                const beakerPercent = 30 + ((totalVol - 25) / 50) * 50;
+                document.getElementById('beaker-liquid').style.height = `${beakerPercent}%`;
+
+                // 更新微觀解說
+                const eqVol = (expState.vAcid * expState.cAcid) / expState.cBase;
+                if (expState.vBaseAdded < eqVol) {
+                    document.getElementById('micro-view-text').innerHTML = `加入的 $OH^-$ 與 $H^+$ 結合生成水分子並放出熱量。溶液中<strong> $H^+$ 的數量正在持續減少</strong>。`;
+                } else if (Math.abs(expState.vBaseAdded - eqVol) < 0.1) {
+                    document.getElementById('micro-view-text').innerHTML = `<strong>到達等當點 (Equivalence Point)！</strong> 溶液中所有的 $H^+$ 與 $OH^-$ 剛好完全反應。溫度達到最高值。`;
+                } else {
+                    document.getElementById('micro-view-text').innerHTML = `<strong>中和完全結束（已過等當點）</strong>。新加入的 $NaOH$ 不再發生化學反應。由於溶液總熱容量變大且環境散熱，溫度開始緩慢下降。`;
+                }
+            } else {
+                // 連續變化法液面固定
+                document.getElementById('beaker-liquid').style.height = `60%`;
+            }
+        }
+
+        // ==================== 數據表格 ====================
+        function updateDataTable() {
+            const body = document.getElementById('data-table-body');
+            
+            if (expState.dataPoints.length === 0) {
+                body.innerHTML = `<tr><td colspan="3" class="px-3 py-6 text-center text-slate-400 text-xs">暫無數據，請開始進行實驗...</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = '';
+            expState.dataPoints.forEach((pt, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                
+                let col2Text = '';
+                if (currentMethod === 'titration') {
+                    col2Text = `${pt.x.toFixed(1)}`;
+                } else {
+                    const hclV = 50 - pt.x;
+                    col2Text = `<span class="text-blue-600 font-bold">${hclV}</span> / <span class="text-emerald-600 font-bold">${pt.x}</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="px-3 py-1.5 font-medium text-slate-400 text-xs">${idx + 1}</td>
+                    <td class="px-3 py-1.5 text-xs font-semibold">${col2Text}</td>
+                    <td class="px-3 py-1.5 text-xs text-rose-600 font-bold">${pt.y.toFixed(2)} °C</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function clearDataTable() {
+            expState.dataPoints = [];
+            if (expState.initialized && currentMethod === 'titration') {
+                // 滴定法保留 0 mL 的初溫數據點
+                const temp = calculateTemperature(expState.vAcid, expState.cAcid, 0, expState.cBase, expState.initTemp, expState.useRealError, 0);
+                expState.dataPoints.push({ x: 0, y: parseFloat(temp.toFixed(2)) });
+            }
+            updateDataTable();
+            updateChart();
+        }
+
+        // ==================== 繪圖與外推線性回歸 ====================
+        function initChart() {
+            const ctx = document.getElementById('tempChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: '實驗數據點',
+                            data: [],
+                            backgroundColor: '#4f46e5',
+                            borderColor: '#4f46e5',
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            showLine: false
+                        },
+                        {
+                            label: '外推擬合線 L1 (上升)',
+                            data: [],
+                            borderColor: '#f59e0b',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            showLine: true,
+                            fill: false,
+                            hidden: true
+                        },
+                        {
+                            label: '外推擬合線 L2 (下降)',
+                            data: [],
+                            borderColor: '#06b6d4',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            showLine: true,
+                            fill: false,
+                            hidden: true
+                        },
+                        {
+                            label: '理論等當點 (交點)',
+                            data: [],
+                            backgroundColor: '#ef4444', // 醒目的紅色
+                            borderColor: '#b91c1c',
+                            pointRadius: 8,
+                            pointHoverRadius: 10,
+                            pointStyle: 'triangle', // 三角形標記
+                            showLine: false,
+                            hidden: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: '加入 NaOH 溶液體積 (mL)',
+                                font: { weight: 'bold' }
+                            },
+                            min: 0,
+                            max: 50
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '混合溶液溫度 (°C)',
+                                font: { weight: 'bold' }
+                            },
+                            suggestedMin: 20,
+                            suggestedMax: 40
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { boxWidth: 12, font: { size: 10 } }
+                        },
+                        // 配置縮放和平移外掛程式 (chartjs-plugin-zoom)
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'xy', // 支持X與Y軸同步平移
+                                threshold: 10
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true, // 支持滑鼠滾輪縮放
+                                    speed: 0.1
+                                },
+                                pinch: {
+                                    enabled: true // 支持行動端雙指捏合縮放
+                                },
+                                mode: 'xy'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.datasetIndex === 3) {
+                                        return `理論等當點：${context.raw.x.toFixed(2)} mL, ${context.raw.y.toFixed(2)} °C`;
+                                    }
+                                    return `${context.dataset.label}：${context.raw.x.toFixed(1)} mL, ${context.raw.y.toFixed(2)} °C`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 控制縮放：放大、縮小
+        function zoomChart(scaleFactor) {
+            if (!chartInstance) return;
+            chartInstance.zoom(scaleFactor);
+        }
+
+        // 重置圖表視角
+        function resetChartZoom() {
+            if (!chartInstance) return;
+            chartInstance.resetZoom();
+        }
+
+        function updateChart() {
+            if (!chartInstance) return;
+
+            // 更新主數據集
+            chartInstance.data.datasets[0].data = expState.dataPoints;
+
+            // 重新計算外推擬合
+            if (document.getElementById('chk-extrapolate').checked) {
+                performExtrapolation();
+            } else {
+                chartInstance.data.datasets[1].hidden = true;
+                chartInstance.data.datasets[2].hidden = true;
+                chartInstance.data.datasets[3].hidden = true;
+                chartInstance.data.datasets[3].data = [];
+                document.getElementById('extrapolation-result').classList.add('hidden');
+            }
+
+            chartInstance.update();
+        }
+
+        // 切換外推法
+        function toggleExtrapolation() {
+            updateChart();
+        }
+
+        // 外推擬合演算法 (最小平方法)
+        function performExtrapolation() {
+            const pts = expState.dataPoints;
+            if (pts.length < 4) {
+                document.getElementById('extrapolation-result').innerHTML = `<i data-lucide="info" class="w-3.5 h-3.5 inline mr-1"></i>數據點不足 (需至少 4 點進行擬合)`;
+                document.getElementById('extrapolation-result').classList.remove('hidden');
+                lucide.createIcons();
+                return;
+            }
+
+            // 1. 尋找轉折點 (最大溫度點之 index)
+            let maxIdx = 0;
+            let maxTemp = pts[0].y;
+            for (let i = 1; i < pts.length; i++) {
+                if (pts[i].y > maxTemp) {
+                    maxTemp = pts[i].y;
+                    maxIdx = i;
+                }
+            }
+
+            // 分割上升與下降數據集
+            // 上升段：包含 maxIdx 之前的點 (至少需要兩個點來擬合)
+            const risingPoints = pts.slice(0, maxIdx + 1);
+            // 下降段：包含 maxIdx 之後的點
+            const fallingPoints = pts.slice(maxIdx);
+
+            if (risingPoints.length < 2 || fallingPoints.length < 2) {
+                document.getElementById('extrapolation-result').innerHTML = `<i data-lucide="info" class="w-3.5 h-3.5 inline mr-1"></i>請在等當點兩側收集更多數據點！`;
+                document.getElementById('extrapolation-result').classList.remove('hidden');
+                lucide.createIcons();
+                return;
+            }
+
+            // 最小平方法線性擬合
+            const fitRising = linearRegression(risingPoints);
+            const fitFalling = linearRegression(fallingPoints);
+
+            // 計算兩條擬合線的交點
+            const m1 = fitRising.slope;
+            const c1 = fitRising.intercept;
+            const m2 = fitFalling.slope;
+            const c2 = fitFalling.intercept;
+
+            if (Math.abs(m1 - m2) < 0.001) {
+                // 斜率太接近，無法交會
+                return;
+            }
+
+            const intersectionX = (c2 - c1) / (m1 - m2);
+            const intersectionY = m1 * intersectionX + c1;
+
+            if (intersectionX < 0 || intersectionX > 50) {
+                document.getElementById('extrapolation-result').innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5 inline mr-1"></i>計算交點超出常規範圍 (0-50 mL)`;
+                document.getElementById('extrapolation-result').classList.remove('hidden');
+                lucide.createIcons();
+                return;
+            }
+
+            // 生成繪製兩條外推虛線的點集
+            const xMin = 0;
+            const xMax = 50;
+
+            chartInstance.data.datasets[1].data = [
+                { x: xMin, y: m1 * xMin + c1 },
+                { x: Math.max(intersectionX, pts[maxIdx].x + 5), y: m1 * Math.max(intersectionX, pts[maxIdx].x + 5) + c1 }
+            ];
+            chartInstance.data.datasets[2].data = [
+                { x: Math.min(intersectionX, pts[maxIdx].x - 5), y: m2 * Math.min(intersectionX, pts[maxIdx].x - 5) + c2 },
+                { x: xMax, y: m2 * xMax + c2 }
+            ];
+
+            // 更新理論等當點（交點標記）到圖表上
+            chartInstance.data.datasets[3].data = [
+                { x: intersectionX, y: intersectionY }
+            ];
+
+            chartInstance.data.datasets[1].hidden = false;
+            chartInstance.data.datasets[2].hidden = false;
+            chartInstance.data.datasets[3].hidden = false;
+
+            // 顯示交點文字數值
+            document.getElementById('calc-eq-vol').innerText = intersectionX.toFixed(2);
+            document.getElementById('calc-eq-temp').innerText = intersectionY.toFixed(2);
+            
+            // 替換原文本，顯示兩個關鍵指標
+            const resultPanel = document.getElementById('extrapolation-result');
+            resultPanel.innerHTML = `
+                <i data-lucide="target" class="w-4 h-4 inline mr-1 text-rose-500 animate-pulse"></i>
+                外推等當點：<span class="text-rose-600 underline text-sm">${intersectionX.toFixed(2)}</span> mL | 
+                理論最高溫度：<span class="text-rose-600 underline text-sm">${intersectionY.toFixed(2)}</span> °C
+            `;
+            resultPanel.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // 線性回歸輔助函數
+        function linearRegression(points) {
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            const n = points.length;
+            
+            for (let i = 0; i < n; i++) {
+                sumX += points[i].x;
+                sumY += points[i].y;
+                sumXY += points[i].x * points[i].y;
+                sumXX += points[i].x * points[i].x;
+            }
+
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+
+            return { slope, intercept };
+        }
+
+        // ==================== 評估測驗模組 ====================
+        let currentAnswer = -1;
+        const quizBank = [
+            {
+                getQuestion: (ca, cb, va) => {
+                    const ans = (va * ca) / cb;
+                    return {
+                        q: `實驗中使用 <strong>${va.toFixed(1)} mL</strong> 的 <strong>${ca.toFixed(1)} M $HCl(aq)$</strong>。若氫氧化鈉溶液 $NaOH(aq)$ 的濃度為 <strong>${cb.toFixed(1)} M</strong>。根據理論，中和滴定反應所需的 $NaOH$ 當量點體積應該是多少 mL？`,
+                        ans: ans,
+                        options: [ans, ans * 0.8, ans * 1.2, ans + 5.0],
+                        explain: `根據中和反應化學計量學式 $HCl + NaOH \\rightarrow NaCl + H_2O$，酸與鹼的反應摩爾比為 1:1。所以：$$M_{acid} \\times V_{acid} = M_{base} \\times V_{base}$$ $$${ca.toFixed(1)} \\times ${va.toFixed(1)} = ${cb.toFixed(1)} \\times V_{base}$$ 解得當量點 $V_{base} = ${ans.toFixed(1)} \\text{ mL}$。`
+                    };
+                }
+            },
+            {
+                getQuestion: () => {
+                    return {
+                        q: "在進行溫度滴定實驗時，為什麼在達到等當點之後，繼續加入過量的 $NaOH(aq)$ 會導致溫度開始慢慢下降？",
+                        options: [
+                            "加入的 $NaOH$ 起到了物理稀釋與冷卻作用，且卡計向環境散熱",
+                            "中和反應逆向進行，吸收了周圍的熱量",
+                            "多餘的 $NaOH$ 與水發生了強烈的吸熱反應",
+                            "溫度計在鹼性過高的環境下會產生負誤差"
+                        ],
+                        ans: 0,
+                        isTextOnly: true,
+                        explain: "當酸被完全中和後，化學反應停止。繼續加入室溫下的 $NaOH(aq)$ 不會放出熱量，只會增大系統的總液體質量（起稀釋冷卻作用），同時卡計會向周圍環境散熱，所以溫度會緩慢下降。"
+                    };
+                }
+            }
+        ];
+
+        function generateNewQuiz() {
+            // 隨機生成化學參數
+            const cAcid = 0.5 + Math.floor(Math.random() * 11) * 0.1; // 0.5 - 1.5 M
+            const cBase = 0.5 + Math.floor(Math.random() * 11) * 0.1; // 0.5 - 1.5 M
+            const vAcid = 10 + Math.floor(Math.random() * 7) * 5;      // 10 - 40 mL
+
+            const quizType = Math.floor(Math.random() * quizBank.length);
+            const quizItem = quizBank[quizType];
+            
+            let qData;
+            if (quizItem.getQuestion.length > 0) {
+                qData = quizItem.getQuestion(cAcid, cBase, vAcid);
+            } else {
+                qData = quizItem.getQuestion();
+            }
+
+            document.getElementById('quiz-question').innerHTML = qData.q;
+            document.getElementById('quiz-feedback').classList.add('hidden');
+
+            // 渲染選項 (打亂順序)
+            let choices = [];
+            if (qData.isTextOnly) {
+                choices = qData.options.map((opt, i) => ({ text: opt, isCorrect: i === qData.ans }));
+            } else {
+                choices = qData.options.map((val, i) => {
+                    return {
+                        text: `${val.toFixed(1)} mL`,
+                        isCorrect: i === 0
+                    };
+                });
+            }
+
+            // 打亂數組
+            choices.sort(() => Math.random() - 0.5);
+
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+            
+            choices.forEach((choice, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/30 transition text-sm flex items-center justify-between";
+                btn.innerHTML = `
+                    <span>${choice.text}</span>
+                    <i data-lucide="circle" class="w-4 h-4 text-slate-300"></i>
+                `;
+                btn.onclick = () => submitAnswer(btn, choice.isCorrect, qData.explain);
+                optionsContainer.appendChild(btn);
+            });
+            lucide.createIcons();
+        }
+
+        function submitAnswer(selectedBtn, isCorrect, explainText) {
+            // 鎖定所有選項
+            const btns = document.querySelectorAll('#quiz-options button');
+            btns.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-70');
+            });
+
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.classList.remove('hidden');
+
+            const icon = selectedBtn.querySelector('i');
+
+            if (isCorrect) {
+                selectedBtn.className = "w-full text-left p-3.5 rounded-xl border-emerald-500 bg-emerald-50/50 text-emerald-900 transition text-sm flex items-center justify-between font-semibold";
+                icon.setAttribute('data-lucide', 'check-circle-2');
+                icon.className = "w-5 h-5 text-emerald-600";
+                
+                feedback.className = "p-4 rounded-xl text-sm border border-emerald-200 bg-emerald-50 text-emerald-800";
+                feedback.innerHTML = `<h4 class="font-bold mb-1 flex items-center gap-1"><i data-lucide="smile" class="w-4 h-4"></i> 答對了！</h4><p class="text-xs leading-relaxed">${explainText}</p>`;
+            } else {
+                selectedBtn.className = "w-full text-left p-3.5 rounded-xl border-rose-500 bg-rose-50/50 text-rose-900 transition text-sm flex items-center justify-between font-semibold";
+                icon.setAttribute('data-lucide', 'x-circle');
+                icon.className = "w-5 h-5 text-rose-600";
+
+                feedback.className = "p-4 rounded-xl text-sm border border-rose-200 bg-rose-50 text-rose-800";
+                feedback.innerHTML = `<h4 class="font-bold mb-1 flex items-center gap-1"><i data-lucide="frown" class="w-4 h-4"></i> 答案不正確</h4><p class="text-xs leading-relaxed">${explainText}</p>`;
+            }
+            lucide.createIcons();
+        }
+
+        // ==================== 全局 Modal 控制 ====================
+        function showToast(title, msg) {
+            document.getElementById('toast-title').innerText = title;
+            document.getElementById('toast-msg').innerText = msg;
+            document.getElementById('toast-modal').classList.remove('hidden');
+        }
+
+        function closeToast() {
+            document.getElementById('toast-modal').classList.add('hidden');
+        }
+
+        // ==================== KaTeX 自動渲染（包括動態 innerHTML 更新） ====================
+        const KATEX_OPTS = {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        };
+        function renderMath(root) {
+            if (!window.renderMathInElement) return;
+            // 先還原已 render 嘅 KaTeX 做原始 $...$ source，避免重複 render 造成內容複製
+            (root || document.body).querySelectorAll('span.katex').forEach(k => {
+                const ann = k.querySelector('annotation[encoding="application/x-tex"]');
+                if (ann) {
+                    const src = ann.textContent;
+                    const display = k.classList.contains('katex-display') || k.parentElement?.classList.contains('katex-display');
+                    k.replaceWith(document.createTextNode(display ? '$$' + src + '$$' : '$' + src + '$'));
+                }
+            });
+            try { renderMathInElement(root || document.body, KATEX_OPTS); } catch(e) {}
+        }
+        // Hook innerHTML setter：任何元素動態更新內容後，自動 render 該元素入面嘅 $...$
+        const _origInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+        Object.defineProperty(Element.prototype, 'innerHTML', {
+            set: function(val) {
+                _origInnerHTML.set.call(this, val);
+                if (typeof val === 'string' && val.indexOf('$') !== -1) {
+                    const el = this;
+                    setTimeout(() => renderMath(el), 0);
+                }
+            },
+            get: _origInnerHTML.get
+        });
+        // 初始渲染
+        window.addEventListener('DOMContentLoaded', () => renderMath());
+    </script>
+</body>
+</html>

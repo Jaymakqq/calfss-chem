@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>筆記閱讀器 | CALFSS CHEM</title>
+<!-- marked.js: markdown -> html -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+<!-- KaTeX for $...$ 化學/數學式 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+  :root{--cream:#faf8f4;--ink:#1a1a1a;--muted:#6b6b66;--line:#e8e4dc}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang HK","Noto Sans HK","Microsoft JhengHei",sans-serif;
+       background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  nav{
+    position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+    padding:14px 24px;background:rgba(250,248,244,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+  }
+  .logo{font-weight:900;font-size:1.05rem;letter-spacing:-.5px;text-decoration:none;color:var(--ink)}
+  .logo em{font-style:normal;color:#2f6fed}
+  .back{font-size:.82rem;font-weight:700;color:var(--muted);text-decoration:none}
+  .back:hover{color:var(--ink)}
+
+  article{max-width:760px;margin:0 auto;padding:44px 24px 90px;line-height:1.9;font-size:1rem}
+  article h1{font-size:1.9rem;font-weight:900;letter-spacing:-1px;margin:0 0 18px;line-height:1.25}
+  article h2{font-size:1.35rem;font-weight:800;margin:36px 0 12px;padding-top:14px;border-top:2px solid var(--line)}
+  article h3{font-size:1.1rem;font-weight:800;margin:26px 0 8px}
+  article p{margin:12px 0}
+  article ul,article ol{margin:12px 0 12px 24px}
+  article li{margin:6px 0}
+  article strong{font-weight:800}
+  article table{border-collapse:collapse;width:100%;margin:18px 0;font-size:.9rem}
+  article th,article td{border:1px solid var(--line);padding:9px 12px;text-align:left}
+  article th{background:#f3f0ea;font-weight:800}
+  article code{background:#f3f0ea;padding:2px 7px;border-radius:6px;font-size:.88em}
+  article pre{background:var(--ink);color:#e8e8e8;padding:16px;border-radius:12px;overflow-x:auto;margin:16px 0}
+  article pre code{background:none;color:inherit;padding:0}
+  article blockquote{border-left:4px solid #2f6fed;background:#eef4ff;padding:12px 18px;border-radius:0 12px 12px 0;margin:16px 0;color:#2c4a8a}
+  article img{max-width:100%;border-radius:12px;border:1px solid var(--line)}
+  article .katex-display{margin:18px 0;overflow-x:auto}
+  #loading{text-align:center;color:var(--muted);padding:80px 0}
+  #err{max-width:760px;margin:60px auto;padding:24px;text-align:center;color:#c0392b}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="../index.html">CALFSS<em>CHEM</em></a>
+  <a class="back" href="../notes.html">← 返回筆記目錄</a>
+</nav>
+
+<article id="content"><div id="loading">📖 載入筆記中…</div></article>
+
+<script>
+(async function(){
+  const f = new URLSearchParams(location.search).get('f');
+  const el = document.getElementById('content');
+  if(!f){ el.innerHTML='<div id="err">❌ 冇指定筆記檔案</div>'; return; }
+  try{
+    const res = await fetch(f);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const md = await res.text();
+    el.innerHTML = marked.parse(md);
+    // render $...$ / $$...$$
+    renderMathInElement(el, {
+      delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
+      throwOnError:false
+    });
+    // 標題用第一篇 h1 做頁面標題
+    const h1 = el.querySelector('h1');
+    if(h1) document.title = h1.textContent + ' | CALFSS CHEM';
+  }catch(e){
+    el.innerHTML = '<div id="err">❌ 載入筆記失敗：'+e.message+'<br><small>請確認檔案路徑 notes/'+f+' 存在</small></div>';
+  }
+})();
+</script>
+</body>
+</html>

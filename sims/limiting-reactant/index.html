@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>限量反應物多功能模擬器 | Limiting Reactant Simulator Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Inter:wght@400;700&display=swap');
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        
+        .canvas-container { 
+            position: relative; 
+            width: 100%; 
+            height: 480px; 
+            background: #ffffff; 
+            border: 4px solid #334155; 
+            border-radius: 1.5rem; 
+            overflow: hidden;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* 原子基礎樣式 */
+        .atom { border-radius: 50%; border: 1px solid rgba(0,0,0,0.15); box-shadow: inset -1px -1px 2px rgba(0,0,0,0.2); }
+        .atom-h { width: 14px; height: 14px; background: #60a5fa; } /* 氫 (藍) */
+        .atom-o { width: 22px; height: 22px; background: #ef4444; } /* 氧 (紅) */
+        .atom-n { width: 24px; height: 24px; background: #1e40af; } /* 氮 (深藍) */
+        .atom-cl { width: 26px; height: 26px; background: #84cc16; } /* 氯 (綠) */
+
+        /* 分子容器 */
+        .molecule { position: absolute; display: flex; align-items: center; justify-content: center; transition: all 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* 雙原子分子通用設定 */
+        .diatomic .atom:nth-child(2) { margin-left: -6px; }
+
+        /* NH3 結構修正 (三角錐視覺化) */
+        .nh3-molecule { width: 40px; height: 40px; position: absolute; }
+        .nh3-n { position: absolute; z-index: 10; top: 8px; left: 8px; }
+        .nh3-h { position: absolute; z-index: 20; scale: 0.85; }
+        .h-pos-1 { top: -2px; left: 13px; }   /* 上方 */
+        .h-pos-2 { bottom: 4px; left: -2px; } /* 左下 */
+        .h-pos-3 { bottom: 4px; right: -2px; }/* 右下 */
+
+        /* 水分子結構 */
+        .water-molecule { width: 36px; height: 36px; position: absolute; }
+        .water-o { position: absolute; z-index: 10; top: 7px; left: 7px; }
+        .water-h1 { position: absolute; z-index: 20; top: -1px; left: -1px; }
+        .water-h2 { position: absolute; z-index: 20; top: -1px; right: -1px; }
+
+        /* HCl 結構 */
+        .hcl-molecule .atom-h { margin-right: -8px; z-index: 20; }
+        .hcl-molecule .atom-cl { z-index: 10; }
+
+        .action-btn { @apply font-bold py-3 px-6 rounded-xl transition duration-200 shadow-md active:scale-95 flex items-center justify-center gap-2 w-full text-center; }
+        .btn-start { @apply bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-400; }
+        .btn-reset { @apply bg-white border-2 border-slate-200 text-slate-600 hover:bg-slate-50; }
+
+        .predict-button { @apply cursor-pointer border-2 border-slate-200 bg-white rounded-xl p-3 text-center transition-all duration-200 font-bold text-slate-700 shadow-sm mb-3 w-full block; }
+        .predict-button.selected { @apply border-indigo-600 bg-indigo-600 text-white shadow-md ring-2 ring-indigo-100; }
+
+        .input-field { @apply w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-2 focus:border-blue-500 focus:outline-none text-center text-lg font-bold; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-6 flex flex-col lg:flex-row justify-between items-center gap-4">
+            <div class="text-center lg:text-left">
+                <h1 id="ui-title" class="text-3xl font-black text-slate-800 tracking-tight">限量反應物模擬器</h1>
+                <select id="reaction-select" class="mt-2 bg-white border-2 border-blue-100 rounded-full px-4 py-1 text-blue-600 font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <!-- 選項由 JS 動態填寫 -->
+                    <option value="water"></option>
+                    <option value="ammonia"></option>
+                    <option value="hcl"></option>
+                </select>
+            </div>
+            <button onclick="toggleLang()" class="px-6 py-2 rounded-full border-2 border-slate-200 text-sm font-bold text-slate-600 bg-white hover:border-blue-400 hover:text-blue-500 transition-all shadow-sm" id="lang-btn">English / 繁中</button>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- 控制面板 -->
+            <div class="lg:col-span-1 space-y-4">
+                <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100">
+                    <h2 id="ui-step1" class="text-lg font-bold mb-4 text-slate-700">1. 配置與預測</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label id="label-reagent-a" class="text-xs font-bold text-blue-600 uppercase"></label>
+                                <span id="count-a" class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-mono font-bold">6</span>
+                            </div>
+                            <input type="range" id="range-a" min="0" max="15" value="6" class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label id="label-reagent-b" class="text-xs font-bold text-red-600 uppercase"></label>
+                                <span id="count-b" class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-mono font-bold">4</span>
+                            </div>
+                            <input type="range" id="range-b" min="0" max="10" value="4" class="w-full h-2 bg-red-100 rounded-lg appearance-none cursor-pointer accent-red-600">
+                        </div>
+                        <div class="pt-4 border-t border-slate-100">
+                            <p id="ui-question" class="text-sm font-bold text-slate-800 mb-3"></p>
+                            <button id="predict-a" class="predict-button" onclick="selectPrediction('a')"></button>
+                            <button id="predict-b" class="predict-button" onclick="selectPrediction('b')"></button>
+                            <button id="predict-none" class="predict-button" onclick="selectPrediction('none')"></button>
+                        </div>
+                        <div id="excess-area" class="hidden bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <label id="excess-label" class="text-xs font-bold text-slate-600 mb-2 block text-center"></label>
+                            <input type="number" id="excess-input" class="input-field" placeholder="0">
+                        </div>
+                        <button id="start-btn" class="action-btn btn-start" disabled></button>
+                        <button id="reset-btn" class="action-btn btn-reset"></button>
+                    </div>
+                </div>
+                <div id="results" class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 hidden">
+                    <h3 id="ui-res-title" class="font-bold text-slate-800 mb-3 text-sm uppercase text-center"></h3>
+                    <div id="result-text" class="text-sm space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- 畫布 -->
+            <div class="lg:col-span-3 space-y-4">
+                <div class="canvas-container shadow-2xl" id="canvas">
+                    <div id="hint" class="absolute inset-0 flex items-center justify-center z-50 bg-white/60 backdrop-blur-[2px]">
+                        <div class="bg-white p-8 rounded-3xl shadow-2xl border border-blue-100 text-center">
+                            <p id="ui-hint-ready" class="text-blue-600 font-black text-xl mb-2"></p>
+                            <p id="ui-hint-sub" class="text-slate-500 text-sm"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="legend" class="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap justify-around items-center gap-4 text-sm font-bold">
+                    <!-- 圖例動態生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            zh: {
+                title: "限量反應物模擬器",
+                step1: "1. 配置與預測",
+                question: "誰是限量反應物？",
+                balanced: "恰好反應",
+                start: "開始反應並核對",
+                reset: "重設實驗",
+                res_title: "實驗結果分析",
+                hint_ready: "準備反應！",
+                hint_sub: "請完成左側預測",
+                correct: "✅ 完美計算！",
+                wrong: "❌ 計算有誤",
+                partial: "⚠️ 部分正確",
+                fb_lim_ok: "✓ 限量反應物判斷正確",
+                fb_lim_bad: "✗ 限量反應物判斷錯誤",
+                fb_lim_actual: (name) => `正確答案：${name} 係限量反應物`,
+                fb_lim_none: "正確答案：兩者恰好完全反應，無限量反應物",
+                fb_rem_ok: "✓ 剩餘量計算正確",
+                fb_rem_bad: "✗ 剩餘量計算錯誤",
+                fb_rem_actual: (name, n) => `正確答案：剩餘 ${name} ${n} 個`,
+                remain: "剩餘",
+                produce: "生成",
+                reactions: {
+                    water: "2H₂ + O₂ → 2H₂O (生成水)",
+                    ammonia: "3H₂ + N₂ → 2NH₃ (生成氨)",
+                    hcl: "H₂ + Cl₂ → 2HCl (生成氯化氫)"
+                },
+                predict_rem: (name) => `預計剩餘 ${name} 數量？`
+            },
+            en: {
+                title: "Limiting Reactant Sim",
+                step1: "1. Config & Predict",
+                question: "Which is limiting?",
+                balanced: "Completely react",
+                start: "Start Reaction",
+                reset: "Reset",
+                res_title: "Analysis",
+                hint_ready: "Ready!",
+                hint_sub: "Complete prediction to unlock",
+                correct: "✅ Correct!",
+                wrong: "❌ Incorrect",
+                partial: "⚠️ Partially correct",
+                fb_lim_ok: "✓ Limiting reactant identified correctly",
+                fb_lim_bad: "✗ Wrong limiting reactant",
+                fb_lim_actual: (name) => `Correct answer: ${name} is limiting`,
+                fb_lim_none: "Correct answer: both react completely (no limiting reactant)",
+                fb_rem_ok: "✓ Remaining amount correct",
+                fb_rem_bad: "✗ Wrong remaining amount",
+                fb_rem_actual: (name, n) => `Correct answer: ${n} ${name} left over`,
+                remain: "Remaining",
+                produce: "Produced",
+                reactions: {
+                    water: "2H₂ + O₂ → 2H₂O (Water)",
+                    ammonia: "3H₂ + N₂ → 2NH₃ (Ammonia)",
+                    hcl: "H₂ + Cl₂ → 2HCl (Hydrogen Chloride)"
+                },
+                predict_rem: (name) => `Expected remaining ${name}?`
+            }
+        };
+
+        const reactions = {
+            water: {
+                a: { name: "H₂", class: "atom-h" },
+                b: { name: "O₂", class: "atom-o" },
+                p: { name: "H₂O", class: "water" },
+                ratio: [2, 1, 2]
+            },
+            ammonia: {
+                a: { name: "H₂", class: "atom-h" },
+                b: { name: "N₂", class: "atom-n" },
+                p: { name: "NH₃", class: "ammonia" },
+                ratio: [3, 1, 2]
+            },
+            hcl: {
+                a: { name: "H₂", class: "atom-h" },
+                b: { name: "Cl₂", class: "atom-cl" },
+                p: { name: "HCl", class: "hcl" },
+                ratio: [1, 1, 2]
+            }
+        };
+
+        let currentLang = 'zh';
+        let currentReaction = 'water';
+        let userPrediction = null;
+        let isReacting = false;
+
+        const canvas = document.getElementById('canvas');
+        const reactionSelect = document.getElementById('reaction-select');
+
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            updateUI();
+        }
+
+        function updateUI() {
+            const t = translations[currentLang];
+            const r = reactions[currentReaction];
+            
+            document.getElementById('ui-title').innerText = t.title;
+            document.getElementById('ui-step1').innerText = t.step1;
+            document.getElementById('ui-question').innerText = t.question;
+            document.getElementById('predict-a').innerText = r.a.name;
+            document.getElementById('predict-b').innerText = r.b.name;
+            document.getElementById('predict-none').innerText = t.balanced;
+            document.getElementById('start-btn').innerText = t.start;
+            document.getElementById('reset-btn').innerText = t.reset;
+            document.getElementById('ui-res-title').innerText = t.res_title;
+            document.getElementById('ui-hint-ready').innerText = t.hint_ready;
+            document.getElementById('ui-hint-sub').innerText = t.hint_sub;
+            
+            document.getElementById('label-reagent-a').innerText = `${r.a.name} Quantity`;
+            document.getElementById('label-reagent-b').innerText = `${r.b.name} Quantity`;
+            if (currentLang === 'zh') {
+                document.getElementById('label-reagent-a').innerText = `${r.a.name} 數量`;
+                document.getElementById('label-reagent-b').innerText = `${r.b.name} 數量`;
+            }
+
+            // 更新反應清單
+            const options = reactionSelect.options;
+            for (let i = 0; i < options.length; i++) {
+                const val = options[i].value;
+                options[i].text = t.reactions[val];
+            }
+
+            updateLegend();
+            if (userPrediction) {
+                const label = document.getElementById('excess-label');
+                if (userPrediction === 'a') {
+                    label.innerText = t.predict_rem(r.b.name);
+                } else if (userPrediction === 'b') {
+                    label.innerText = t.predict_rem(r.a.name);
+                } else {
+                    label.innerText = t.balanced;
+                }
+            }
+        }
+
+        function updateLegend() {
+            const r = reactions[currentReaction];
+            const legend = document.getElementById('legend');
+            legend.innerHTML = `
+                <div class="flex items-center gap-2"><span>${r.a.name}:</span> <div class="flex diatomic"><div class="atom ${r.a.class}"></div><div class="atom ${r.a.class}"></div></div></div>
+                <div class="flex items-center gap-2"><span>${r.b.name}:</span> <div class="flex diatomic"><div class="atom ${r.b.class}"></div><div class="atom ${r.b.class}"></div></div></div>
+                <div class="flex items-center gap-2"><span>${r.p.name}:</span> <div id="legend-product-icon"></div></div>
+            `;
+            const prodIcon = document.getElementById('legend-product-icon');
+            prodIcon.appendChild(createProductEl(r.p.class, true));
+        }
+
+        function createProductEl(type, isLegend = false) {
+            const div = document.createElement('div');
+            div.className = isLegend ? "relative w-10 h-10 scale-75" : "molecule";
+            
+            if (type === 'water') {
+                div.className += " water-molecule";
+                div.innerHTML = `
+                    <div class="atom atom-o water-o"></div>
+                    <div class="atom atom-h water-h1"></div>
+                    <div class="atom atom-h water-h2"></div>
+                `;
+            } else if (type === 'ammonia') {
+                div.className += " nh3-molecule";
+                div.innerHTML = `
+                    <div class="atom atom-n nh3-n"></div>
+                    <div class="atom atom-h nh3-h h-pos-1"></div>
+                    <div class="atom atom-h nh3-h h-pos-2"></div>
+                    <div class="atom atom-h nh3-h h-pos-3"></div>
+                `;
+            } else if (type === 'hcl') {
+                div.className += " hcl-molecule";
+                div.innerHTML = `<div class="atom atom-h"></div><div class="atom atom-cl"></div>`;
+            }
+            return div;
+        }
+
+        function createDiatomicEl(atomClass) {
+            const div = document.createElement('div');
+            div.className = "molecule diatomic";
+            div.innerHTML = `<div class="atom ${atomClass}"></div><div class="atom ${atomClass}"></div>`;
+            return div;
+        }
+
+        function selectPrediction(type) {
+            if (isReacting) return;
+            userPrediction = type;
+            const r = reactions[currentReaction];
+            const t = translations[currentLang];
+            document.querySelectorAll('.predict-button').forEach(b => b.classList.remove('selected'));
+            document.getElementById(`predict-${type === 'a' ? 'a' : type === 'b' ? 'b' : 'none'}`).classList.add('selected');
+            
+            const area = document.getElementById('excess-area');
+            const label = document.getElementById('excess-label');
+            const input = document.getElementById('excess-input');
+            
+            area.classList.remove('hidden');
+            document.getElementById('hint').classList.add('hidden');
+
+            if (type === 'a') {
+                label.innerText = t.predict_rem(r.b.name);
+                input.disabled = false;
+            } else if (type === 'b') {
+                label.innerText = t.predict_rem(r.a.name);
+                input.disabled = false;
+            } else {
+                label.innerText = t.balanced;
+                input.value = 0;
+                input.disabled = true;
+            }
+            checkEnable();
+        }
+
+        function checkEnable() {
+            const val = document.getElementById('excess-input').value;
+            document.getElementById('start-btn').disabled = (userPrediction === null || val === "");
+        }
+
+        function updateParticles() {
+            if (isReacting) return;
+            canvas.querySelectorAll('.molecule').forEach(m => m.remove());
+            const r = reactions[currentReaction];
+            const countA = parseInt(document.getElementById('range-a').value);
+            const countB = parseInt(document.getElementById('range-b').value);
+            document.getElementById('count-a').innerText = countA;
+            document.getElementById('count-b').innerText = countB;
+
+            for(let i=0; i<countA; i++) spawn(createDiatomicEl(r.a.class));
+            for(let i=0; i<countB; i++) spawn(createDiatomicEl(r.b.class));
+            
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('hint').classList.remove('hidden');
+            userPrediction = null;
+            document.querySelectorAll('.predict-button').forEach(b => b.classList.remove('selected'));
+            document.getElementById('excess-area').classList.add('hidden');
+            document.getElementById('excess-input').value = "";
+        }
+
+        function spawn(el) {
+            el.style.left = `${Math.random() * 80 + 10}%`;
+            el.style.top = `${Math.random() * 80 + 10}%`;
+            el.style.transform = `rotate(${Math.random()*360}deg)`;
+            canvas.appendChild(el);
+        }
+
+        async function startReaction() {
+            isReacting = true;
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('reaction-select').disabled = true;
+
+            const r = reactions[currentReaction];
+            const a_have = parseInt(document.getElementById('range-a').value);
+            const b_have = parseInt(document.getElementById('range-b').value);
+            
+            const batches = Math.min(Math.floor(a_have / r.ratio[0]), Math.floor(b_have / r.ratio[1]));
+            
+            const molecules = Array.from(canvas.querySelectorAll('.molecule'));
+            const molsA = molecules.filter(m => m.innerHTML.includes(r.a.class));
+            const molsB = molecules.filter(m => m.innerHTML.includes(r.b.class));
+
+            for (let i = 0; i < batches; i++) {
+                const group = [];
+                for(let j=0; j<r.ratio[0]; j++) group.push(molsA.pop());
+                for(let j=0; j<r.ratio[1]; j++) group.push(molsB.pop());
+
+                const mx = Math.random() * 60 + 20;
+                const my = Math.random() * 60 + 20;
+
+                group.forEach(m => {
+                    m.style.left = mx + '%'; m.style.top = my + '%';
+                    m.style.opacity = '0'; m.style.transform += ' scale(0)';
+                });
+
+                await new Promise(res => setTimeout(res, 600));
+                for(let j=0; j<r.ratio[2]; j++) {
+                    const p = createProductEl(r.p.class);
+                    p.style.left = (mx + (j*5 - 5)) + '%';
+                    p.style.top = (my + (j*5 - 5)) + '%';
+                    p.style.opacity = '0';
+                    canvas.appendChild(p);
+                    setTimeout(() => { 
+                        p.style.opacity = '1'; 
+                        p.style.transform = `rotate(${Math.random()*360}deg)`; 
+                    }, 50);
+                }
+            }
+
+            const remA = a_have - (batches * r.ratio[0]);
+            const remB = b_have - (batches * r.ratio[1]);
+            const prod = batches * r.ratio[2];
+            
+            let actualLimiting = "none";
+            if (remA === 0 && remB > 0) actualLimiting = "a";
+            else if (remB === 0 && remA > 0) actualLimiting = "b";
+
+            const t = translations[currentLang];
+            const userIn = parseInt(document.getElementById('excess-input').value);
+
+            // ---- layered feedback: check limiting judgement and remaining amount separately ----
+            const limCorrect = (userPrediction === actualLimiting);
+            const excessName = actualLimiting === 'a' ? r.b.name : r.a.name;
+            const excessRem = actualLimiting === 'a' ? remB : actualLimiting === 'b' ? remA : 0;
+            const remCorrect = (userIn === excessRem);
+            const isCorrect = limCorrect && remCorrect;
+
+            // build feedback lines
+            const limitingName = actualLimiting === 'a' ? r.a.name : actualLimiting === 'b' ? r.b.name : null;
+            const limLine = limCorrect
+                ? `<div class="text-green-700 font-bold">✔ ${t.fb_lim_ok}</div>`
+                : `<div class="text-red-600 font-bold">✘ ${t.fb_lim_bad}</div>
+                   <div class="text-xs text-slate-500 mt-0.5">${actualLimiting === 'none' ? t.fb_lim_none : t.fb_lim_actual(limitingName)}</div>`;
+            const remLine = remCorrect
+                ? `<div class="text-green-700 font-bold">✔ ${t.fb_rem_ok}</div>`
+                : `<div class="text-red-600 font-bold">✘ ${t.fb_rem_bad}</div>
+                   <div class="text-xs text-slate-500 mt-0.5">${t.fb_rem_actual(excessName, excessRem)}</div>`;
+
+            const headClass = isCorrect ? 'bg-green-50 border-green-200 text-green-700'
+                          : (limCorrect || remCorrect) ? 'bg-amber-50 border-amber-200 text-amber-700'
+                          : 'bg-red-50 border-red-200 text-red-700';
+            const headText = isCorrect ? t.correct : (limCorrect || remCorrect) ? t.partial : t.wrong;
+
+            const resDiv = document.getElementById('results');
+            resDiv.classList.remove('hidden');
+            document.getElementById('result-text').innerHTML = `
+                <div class="p-3 rounded-xl border-2 text-center mb-2 ${headClass}">
+                    <span class="font-black text-base">${headText}</span>
+                </div>
+                <div class="bg-white border border-slate-100 rounded-xl p-3 mb-3 shadow-sm space-y-2 text-sm">
+                    ${limLine}
+                    ${remLine}
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-[10px] font-bold uppercase tracking-wider">
+                    <div class="bg-white border border-slate-100 p-2 rounded-lg shadow-sm text-center">
+                        <div class="text-slate-400 mb-1">${t.produce} ${r.p.name}</div>
+                        <div class="text-lg text-slate-700">${prod}</div>
+                    </div>
+                    <div class="bg-white border border-slate-100 p-2 rounded-lg shadow-sm text-center">
+                        <div class="text-slate-400 mb-1">${t.remain} ${r.a.name}</div>
+                        <div class="text-lg text-blue-600">${remA}</div>
+                    </div>
+                    <div class="bg-white border border-slate-100 p-2 rounded-lg shadow-sm text-center col-span-2">
+                        <div class="text-slate-400 mb-1">${t.remain} ${r.b.name}</div>
+                        <div class="text-lg text-red-600">${remB}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function reset() {
+            isReacting = false;
+            document.getElementById('reaction-select').disabled = false;
+            updateParticles();
+        }
+
+        reactionSelect.onchange = (e) => { 
+            currentReaction = e.target.value; 
+            updateUI(); 
+            updateParticles(); 
+        };
+        document.getElementById('range-a').oninput = updateParticles;
+        document.getElementById('range-b').oninput = updateParticles;
+        document.getElementById('excess-input').oninput = checkEnable;
+        document.getElementById('start-btn').onclick = startReaction;
+        document.getElementById('reset-btn').onclick = reset;
+
+        updateUI();
+        updateParticles();
+    </script>
+</body>
+</html>

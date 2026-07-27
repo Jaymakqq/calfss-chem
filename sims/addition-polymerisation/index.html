@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>加成聚合作用 3D 模擬器 — 聚乙烯 Addition Polymerisation</title>
+<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+<style>
+  :root{--bg:#0f172a;--panel:#1e293b;--txt:#e2e8f0;--accent:#38bdf8;--good:#4ade80;--warn:#fbbf24;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang HK","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--txt);}
+  header{padding:14px 18px;background:var(--panel);border-bottom:1px solid #334155}
+  header h1{margin:0;font-size:1.15rem}
+  header p{margin:4px 0 0;font-size:.8rem;color:#94a3b8}
+  .wrap{display:flex;flex-wrap:wrap;gap:14px;padding:14px}
+  .canvasBox{flex:1 1 520px;background:#0b1120;border:1px solid #334155;border-radius:12px;position:relative;height:560px;overflow:hidden}
+  .canvasBox canvas{display:block;border-radius:12px;cursor:grab}
+  .hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:.75rem;color:#64748b;pointer-events:none}
+  .side{flex:1 1 300px;max-width:380px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--panel);border:1px solid #334155;border-radius:12px;padding:14px}
+  .card h2{margin:0 0 10px;font-size:.95rem;color:var(--accent)}
+  label{font-size:.82rem;display:block;margin:8px 0 4px;color:#cbd5e1}
+  input[type=range]{width:100%}
+  .btnRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  button{flex:1;min-width:90px;padding:10px 8px;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer}
+  .play{background:var(--good);color:#052e16}
+  .pause{background:var(--warn);color:#451a03}
+  .reset{background:#64748b;color:#fff}
+  .stat{font-size:.85rem;line-height:1.9}
+  .stat b{color:var(--good);font-size:1.05rem}
+  .eq{background:#0b1120;border:1px solid #334155;border-radius:8px;padding:10px;text-align:center;font-size:1.05rem;letter-spacing:.5px}
+  .eq sub{font-size:.7em}
+  .tip{font-size:.82rem;line-height:1.7;color:#cbd5e1}
+  .tip li{margin-bottom:6px}
+  .legend span{display:inline-block;margin-right:12px;font-size:.78rem}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧪 加成聚合作用 3D 模擬器（Addition Polymerisation）— 聚乙烯 Poly(ethene)</h1>
+  <p>3D 球棍模型：乙烯單體（CH₂=CH₂）斷開 C=C 雙鍵，連接成鋸齒形聚乙烯長鏈</p>
+</header>
+<div class="wrap">
+  <div class="canvasBox" id="cvBox">
+    <div class="hint">🖱️ 拖曳旋轉視角 · 滾輪縮放</div>
+  </div>
+  <div class="side">
+    <div class="card">
+      <h2>⚙️ 控制</h2>
+      <label>乙烯單體數目：<span id="nVal">20</span></label>
+      <input type="range" id="nMono" min="8" max="36" value="20">
+      <label>溫度（粒子運動速率）：<span id="tVal">5</span></label>
+      <input type="range" id="temp" min="1" max="10" value="5">
+      <div class="btnRow">
+        <button class="play" id="btnStart">▶ 開始聚合</button>
+        <button class="pause" id="btnPause">⏸ 暫停</button>
+        <button class="reset" id="btnReset">↺ 重設</button>
+      </div>
+      <label style="margin-top:10px"><input type="checkbox" id="stepMode"> 👣 逐步聚合模式（每按一下加一個單體）</label>
+      <div class="btnRow">
+        <button class="play" id="btnStep" disabled style="background:#818cf8;color:#fff">👣 加一個單體</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📊 即時數據</h2>
+      <div class="stat">
+        已連接單體：<b id="sJoined">0</b> / <span id="sTotal">20</span><br>
+        聚合物鏈數：<b id="sChains">0</b><br>
+        最長鏈：<b id="sLong">0</b> 個重複單位<br>
+        狀態：<b id="sPhase" style="color:#fbbf24">單體自由移動中</b>
+      </div>
+    </div>
+    <div class="card">
+      <h2>🧬 反應方程式</h2>
+      <div class="eq">n CH<sub>2</sub>=CH<sub>2</sub> &nbsp;⟶&nbsp; −(CH<sub>2</sub>−CH<sub>2</sub>)<sub>n</sub>−</div>
+      <div class="legend" style="margin-top:8px">
+        <span><span class="dot" style="background:#374151;border:2px solid #9ca3af"></span>碳 C</span>
+        <span><span class="dot" style="background:#f8fafc"></span>氫 H</span>
+        <span><span class="dot" style="background:#f472b6"></span>雙鍵（未反應）</span>
+        <span><span class="dot" style="background:#4ade80"></span>單鍵（已聚合）</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>💡 教學貼士</h2>
+      <ul class="tip">
+        <li>加成聚合中，<b>C=C 雙鍵斷開</b>變成單鍵，單體逐一接合，<b>沒有小分子副產物</b>。</li>
+        <li>觀察：粉紅色雙鍵消失、出現綠色單鍵＝該單體已加入鏈中（每單體貢獻一個 −CH₂− 重複單位）。</li>
+        <li>3D 視角可見聚乙烯的<b>鋸齒形（zig-zag）碳鏈</b>，C–C–C 鍵角約 109.5°（四面體形）。</li>
+        <li>DSE 重點：重複單位是 −CH₂−CH₂−；「n」代表大量單體；條件為高溫、高壓及催化劑。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+const box=document.getElementById('cvBox');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0b1120);
+const camera=new THREE.PerspectiveCamera(50,1,0.1,200);
+camera.position.set(0,0,26);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+box.appendChild(renderer.domElement);
+
+function resize(){const r=box.getBoundingClientRect();
+renderer.setSize(r.width,r.height);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);
+
+scene.add(new THREE.AmbientLight(0xffffff,.55));
+const dl=new THREE.DirectionalLight(0xffffff,1.1);dl.position.set(8,12,10);scene.add(dl);
+const dl2=new THREE.DirectionalLight(0x88aaff,.35);dl2.position.set(-10,-6,-8);scene.add(dl2);
+
+// boundary box (subtle)
+const B=9;
+const boxHelper=new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(B*2,B*2,B*2)),
+  new THREE.LineBasicMaterial({color:0x22314f}));
+scene.add(boxHelper);
+
+const matC=new THREE.MeshPhongMaterial({color:0x374151,shininess:60,specular:0x9ca3af});
+const matH=new THREE.MeshPhongMaterial({color:0xf8fafc,shininess:80});
+const matDbl=new THREE.MeshPhongMaterial({color:0xf472b6,emissive:0x831843});
+const matBond=new THREE.MeshPhongMaterial({color:0x4ade80,emissive:0x14532d});
+const geoC=new THREE.SphereGeometry(.42,24,18);
+const geoH=new THREE.SphereGeometry(.2,16,12);
+const geoDbl=new THREE.CylinderGeometry(.07,.07,1,10);
+const geoBond=new THREE.CylinderGeometry(.09,.09,1,10);
+
+function cyl(a,b,geo,mat){
+  const m=new THREE.Mesh(geo,mat);
+  setCyl(m,a,b);return m;
+}
+function setCyl(m,a,b){
+  const d=new THREE.Vector3().subVectors(b,a);
+  m.position.copy(a).addScaledVector(d,.5);
+  m.scale.set(1,d.length(),1);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());
+}
+
+const COFF=.62; // half C=C length
+class Mono{
+  constructor(){
+    this.g=new THREE.Group();
+    this.c1=new THREE.Mesh(geoC,matC);this.c1.position.x=-COFF;
+    this.c2=new THREE.Mesh(geoC,matC);this.c2.position.x=COFF;
+    this.g.add(this.c1,this.c2);
+    this.hs=[];
+    for(const sx of[-COFF,COFF])for(const sy of[-.62,.62]){
+      const h=new THREE.Mesh(geoH,matH);h.position.set(sx,sy,0);this.g.add(h);this.hs.push(h);
+    }
+    const z=.13;
+    this.b1=cyl(new THREE.Vector3(-COFF,0,z),new THREE.Vector3(COFF,0,z),geoDbl,matDbl);
+    this.b2=cyl(new THREE.Vector3(-COFF,0,-z),new THREE.Vector3(COFF,0,-z),geoDbl,matDbl);
+    this.g.add(this.b1,this.b2);
+    this.g.position.set((Math.random()-.5)*2*(B-1.5),(Math.random()-.5)*2*(B-1.5),(Math.random()-.5)*2*(B-1.5));
+    this.g.rotation.set(Math.random()*6.28,Math.random()*6.28,Math.random()*6.28);
+    this.randVel();
+    this.rvel=new THREE.Vector3((Math.random()-.5)*.01,(Math.random()-.5)*.01,(Math.random()-.5)*.01);
+    scene.add(this.g);
+    this.joined=false;this.chain=null;this.chainPos=-1;
+    this.pos=this.g.position;
+  }
+  randVel(){const s=parseFloat(document.getElementById('temp').value)*.008;
+    this.vel=new THREE.Vector3((Math.random()-.5)*s,(Math.random()-.5)*s,(Math.random()-.5)*s);}
+  dispose(){scene.remove(this.g);}
+}
+
+let monomers=[],chains=[],chainMeshes=new Map(),polyStarted=false;
+
+function init(){
+  for(const m of monomers){if(m.joined)removeJoinedVisual(m);else m.dispose();}
+  for(const arr of chainMeshes.values())for(const m of arr)scene.remove(m);
+  chainMeshes.clear();chains=[];monomers=[];
+  const n=parseInt(document.getElementById('nMono').value);
+  for(let i=0;i<n;i++)monomers.push(new Mono());
+  document.getElementById('sTotal').textContent=n;
+  polyStarted=false;updateStats();
+}
+
+function updateStats(){
+  const j=monomers.filter(m=>m.joined).length;
+  document.getElementById('sJoined').textContent=j;
+  document.getElementById('sChains').textContent=chains.length;
+  document.getElementById('sLong').textContent=chains.reduce((a,c)=>Math.max(a,c.length),0);
+  const ph=document.getElementById('sPhase');
+  if(j===0){ph.textContent='單體自由移動中';ph.style.color='#fbbf24';}
+  else if(j<monomers.length){ph.textContent='聚合進行中 — 鏈不斷增長';ph.style.color='#38bdf8';}
+  else{ph.textContent='聚合完成 — 形成聚乙烯鏈';ph.style.color='#4ade80';}
+}
+
+function makeJoinedVisual(m){
+  // polymerised unit: ONE carbon + two hydrogens
+  m.dispose();
+  m.jc=new THREE.Mesh(geoC,matC);
+  m.jh1=new THREE.Mesh(geoH,matH);m.jh2=new THREE.Mesh(geoH,matH);
+  scene.add(m.jc,m.jh1,m.jh2);
+}
+function removeJoinedVisual(m){
+  if(m.jc){scene.remove(m.jc,m.jh1,m.jh2);m.jc=null;}
+}
+
+function join(a,b){
+  if(!a.joined&&!b.joined){
+    const ch=[a,b];a.chain=b.chain=chains.length;
+    a.joined=b.joined=true;chains.push(ch);reindex(ch);
+    makeJoinedVisual(a);makeJoinedVisual(b);
+  }else if(a.joined&&!b.joined){attach(a,b);}
+  else if(!a.joined&&b.joined){attach(b,a);}
+}
+function attach(anchored,m){
+  const ch=chains[anchored.chain];
+  const head=ch[0],tail=ch[ch.length-1];
+  if(m.pos.distanceTo(head.pos)<m.pos.distanceTo(tail.pos)){ch.unshift(m);reindex(ch);}
+  else{ch.push(m);m.chainPos=ch.length-1;}
+  m.chain=anchored.chain;m.joined=true;makeJoinedVisual(m);
+}
+function reindex(ch){ch.forEach((m,i)=>m.chainPos=i);}
+
+const BOND=1.15,ZIG=.5;
+function layoutChain(ch){
+  const n=ch.length;
+  // chain centre
+  const c=new THREE.Vector3();
+  for(const m of ch)c.add(m.pos);c.divideScalar(n);
+  // chain axis from endpoints (or random per chain)
+  if(!ch.axis){
+    ch.axis=new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize();
+    ch.perp=new THREE.Vector3().crossVectors(ch.axis,new THREE.Vector3(0,1,0));
+    if(ch.perp.lengthSq()<.01)ch.perp.set(1,0,0);
+    ch.perp.normalize();
+    ch.norm=new THREE.Vector3().crossVectors(ch.axis,ch.perp).normalize();
+  }
+  for(let i=0;i<n;i++){
+    const m=ch[i];
+    const t=new THREE.Vector3().copy(c)
+      .addScaledVector(ch.axis,(i-(n-1)/2)*BOND)
+      .addScaledVector(ch.perp,(i%2?-ZIG:ZIG));
+    m.pos.lerp(t,.07);
+  }
+  // update visuals
+  for(let i=0;i<n;i++){
+    const m=ch[i];if(!m.jc)continue;
+    m.jc.position.copy(m.pos);
+    // H directions: opposite of bond bisector ± chain normal
+    const prev=ch[i-1],next=ch[i+1];
+    let inward=new THREE.Vector3();
+    if(prev)inward.add(new THREE.Vector3().subVectors(prev.pos,m.pos).normalize());
+    if(next)inward.add(new THREE.Vector3().subVectors(next.pos,m.pos).normalize());
+    if(inward.lengthSq()<.01)inward.copy(ch.perp);
+    inward.normalize();
+    const out=inward.clone().negate();
+    const h1=out.clone().addScaledVector(ch.norm,.9).normalize();
+    const h2=out.clone().addScaledVector(ch.norm,-.9).normalize();
+    m.jh1.position.copy(m.pos).addScaledVector(h1,.55);
+    m.jh2.position.copy(m.pos).addScaledVector(h2,.55);
+  }
+  // bonds
+  let arr=chainMeshes.get(ch);
+  if(!arr){arr=[];chainMeshes.set(ch,arr);}
+  while(arr.length<n-1){const b=new THREE.Mesh(geoBond,matBond);scene.add(b);arr.push(b);}
+  while(arr.length>n-1){scene.remove(arr.pop());}
+  for(let i=0;i<n-1;i++)setCyl(arr[i],ch[i].pos,ch[i+1].pos);
+}
+
+function step(){
+  for(const m of monomers){
+    if(m.joined)continue;
+    m.pos.add(m.vel);
+    m.g.rotation.x+=m.rvel.x;m.g.rotation.y+=m.rvel.y;m.g.rotation.z+=m.rvel.z;
+    for(const ax of['x','y','z']){
+      if(m.pos[ax]<-B+1||m.pos[ax]>B-1)m.vel[ax]*=-1;
+      m.pos[ax]=Math.max(-B+1,Math.min(B-1,m.pos[ax]));
+    }
+  }
+  if(polyStarted&&!stepModeOn){
+    for(let i=0;i<monomers.length;i++){
+      const a=monomers[i];
+      for(let j=i+1;j<monomers.length;j++){
+        const b=monomers[j];
+        if(a.joined&&b.joined)continue;
+        if(a.pos.distanceTo(b.pos)<2.0)join(a,b);
+      }
+    }
+  }
+  if(polyStarted||stepModeOn){
+    for(const ch of chains)layoutChain(ch);
+    updateStats();
+  }
+}
+
+// ---- step-by-step mode: add ONE monomer per click ----
+let stepModeOn=false;
+function joinNext(){
+  const free=monomers.filter(m=>!m.joined);
+  if(!free.length)return false;
+  let best=null;
+  if(chains.length){
+    // attach the free monomer nearest to the longest chain's tail
+    const ch=chains.reduce((a,c)=>c.length>a.length?c:a,chains[0]);
+    const tail=ch[ch.length-1];
+    best=free.reduce((p,m)=>m.pos.distanceTo(tail.pos)<p.pos.distanceTo(tail.pos)?m:p,free[0]);
+    attach(tail,best);
+  }else{
+    // first click: start a chain with the two closest free monomers
+    let a=free[0],b=free[1],dmin=1e9;
+    for(let i=0;i<free.length;i++)for(let j=i+1;j<free.length;j++){
+      const d=free[i].pos.distanceTo(free[j].pos);
+      if(d<dmin){dmin=d;a=free[i];b=free[j];}
+    }
+    if(b)join(a,b);
+  }
+  updateStats();
+  return true;
+}
+
+// ---- camera orbit (drag + wheel + auto slow spin) ----
+let theta=0,phi=1.1,dist=26,dragging=false,px=0,py=0,autoSpin=true;
+const el=renderer.domElement;
+el.addEventListener('pointerdown',e=>{dragging=true;px=e.clientX;py=e.clientY;autoSpin=false;});
+window.addEventListener('pointerup',()=>dragging=false);
+el.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  theta-=(e.clientX-px)*.006;phi-=(e.clientY-py)*.006;
+  phi=Math.max(.15,Math.min(Math.PI-.15,phi));
+  px=e.clientX;py=e.clientY;
+});
+el.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(10,Math.min(50,dist+e.deltaY*.02));},{passive:false});
+
+const clock=new THREE.Clock();
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=clock.getDelta();
+  if(autoSpin)theta+=dt*.12;
+  step();
+  camera.position.set(
+    dist*Math.sin(phi)*Math.sin(theta),
+    dist*Math.cos(phi),
+    dist*Math.sin(phi)*Math.cos(theta));
+  camera.lookAt(0,0,0);
+  renderer.render(scene,camera);
+}
+
+document.getElementById('btnStart').onclick=()=>{polyStarted=true;};
+document.getElementById('btnPause').onclick=()=>{polyStarted=!polyStarted;};
+document.getElementById('btnReset').onclick=()=>{init();autoSpin=true;stepBtn.textContent='👣 加一個單體';};
+const stepChk=document.getElementById('stepMode'),stepBtn=document.getElementById('btnStep');
+stepChk.onchange=()=>{
+  stepModeOn=stepChk.checked;
+  stepBtn.disabled=!stepModeOn;
+  if(stepModeOn)polyStarted=true; // freeze random collisions, but keep chain layout active
+};
+stepBtn.onclick=()=>{
+  if(!stepModeOn)return;
+  const left=monomers.filter(m=>!m.joined).length;
+  if(left>0)joinNext();
+  if(monomers.every(m=>m.joined))stepBtn.textContent='✅ 全部單體已連接';
+  else stepBtn.textContent='👣 加一個單體（剩 '+monomers.filter(m=>!m.joined).length+' 個）';
+};
+document.getElementById('nMono').oninput=e=>{document.getElementById('nVal').textContent=e.target.value;init();};
+document.getElementById('temp').oninput=e=>{document.getElementById('tVal').textContent=e.target.value;
+  for(const m of monomers)if(!m.joined)m.randVel();};
+
+resize();init();loop();
+</script>
+</body>
+</html>

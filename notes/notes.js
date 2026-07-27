@@ -1,0 +1,46 @@
+// ============================================================
+//  溫習筆記目錄 — 新增筆記只需喺下面加一個物件！
+//  file 有兩種：
+//   - PDF:       type:'pdf', file:'pdfs/xxx.pdf'      （放入 notes/pdfs/）
+//   - Markdown:  type:'md',  file:'md/xxx.md'         （放入 notes/md/）
+// ============================================================
+
+const DSE_TOPICS = [
+  'I. 地球',
+  'II. 微觀世界 I',
+  'III. 金屬',
+  'IV. 酸和鹽基',
+  'V. 化石燃料和碳化合物',
+  'VI. 微觀世界 II',
+  'VII. 氧化還原反應、化學電池和電解',
+  'VIII. 化學反應與能量',
+  'IX. 反應速率',
+  'X. 化學平衡',
+  'XI. 碳化合物的化學',
+  'XII. 化學世界中的規律',
+];
+
+const NOTES = [
+  {
+    title: '酸和鹽基 — 核心概念速覽（示範）',
+    topic: 'IV. 酸和鹽基',
+    type: 'md',
+    file: 'md/acids-bases-demo.md',
+    desc: '酸鹼定義、中和反應、指示劑選擇、DSE 常見陷阱'
+  },
+  // 範例（等你提供 PDF / MD 之後填入）：
+  // {
+  //   title: '酸和鹽基 — 完整溫習筆記',
+  //   topic: 'IV. 酸和鹽基',
+  //   type: 'pdf',
+  //   file: 'pdfs/acids-bases.pdf',
+  //   desc: '酸鹼定義、滴定計算、指示劑選擇、常見 DSE 題型'
+  // },
+  // {
+  //   title: '碳化合物的化學（NotebookLM 整理）',
+  //   topic: 'XI. 碳化合物的化學',
+  //   type: 'md',
+  //   file: 'md/carbon-chemistry.md',
+  //   desc: '官能基、同分異構、反應類型總整理'
+  // },
+];
