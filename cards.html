@@ -4,30 +4,85 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Concept Cards | CALFSS CHEM</title>
+<!-- KaTeX -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <style>
-  :root{--cream:#faf8f4;--ink:#1a1a1a;--muted:#6b6b66;--line:#e8e4dc}
+  :root{--cream:#f5efe2;--ink:#17140d;--muted:#6b6557;--line:#e5ddcb;--teal:#12b3a4;--coral:#ff5b57;--mustard:#ffc531;--violet:#6b5be6}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,"PingFang HK","Noto Sans HK","Microsoft JhengHei",sans-serif;
-       background:var(--cream);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
-  nav{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--line)}
-  .logo{font-weight:900;font-size:1.15rem;letter-spacing:-.5px;text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:10px}
+  body{font-family:-apple-system,"PingFang HK","Noto Sans HK",sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh}
+  nav{
+    position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+    padding:14px 28px;background:rgba(245,239,226,.9);backdrop-filter:blur(14px);border-bottom:3px solid var(--ink);
+  }
+  .logo{font-weight:900;font-size:1.15rem;text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:10px}
   .logo-img{height:34px;width:auto;display:block}
-  .logo em{font-style:normal;color:#2f6fed}
-  .navlinks{display:flex;gap:6px;flex-wrap:wrap}
-  .navlinks a{text-decoration:none;color:var(--muted);font-size:.82rem;padding:8px 14px;border-radius:999px;font-weight:600}
-  .navlinks a:hover,.navlinks a.on{background:var(--ink);color:#fff}
-  .soon{flex:1;display:grid;place-items:center;padding:60px 24px;text-align:center}
-  .soon .box{max-width:440px}
-  .soon .big{font-size:4.5rem;margin-bottom:18px}
-  .soon h1{font-size:2rem;font-weight:900;letter-spacing:-1px}
-  .soon p{color:var(--muted);margin-top:12px;line-height:1.8;font-size:.92rem}
-  .soon .plan{margin-top:26px;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:20px 24px}
-  .soon .plan div{padding:8px 0;font-size:.88rem;border-bottom:1px dashed var(--line)}
-  .soon .plan div:last-child{border:none}
-  .soon a.home{display:inline-block;margin-top:28px;padding:13px 28px;background:var(--ink);color:#fff;border-radius:999px;text-decoration:none;font-weight:800;font-size:.88rem}
+  .logo em{font-style:normal;color:var(--violet)}
+  .navlinks{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .navlinks a{text-decoration:none;color:var(--ink);font-size:.82rem;padding:8px 14px;border-radius:999px;font-weight:700;transition:.15s}
+  .navlinks a:hover{background:var(--mustard)}.navlinks a.on{background:var(--ink);color:#fff}
+
+  .page-head{padding:50px 28px 10px;max-width:800px;margin:0 auto}
+  .page-head h1{font-size:clamp(1.8rem,5vw,3rem);font-weight:900;letter-spacing:-1.5px}
+
+  .deck-bar{display:flex;gap:8px;flex-wrap:wrap;padding:14px 28px;max-width:800px;margin:0 auto}
+  .deck-btn{
+    padding:8px 16px;border-radius:999px;border:3px solid var(--ink);background:#fff;
+    font-size:.78rem;font-weight:800;cursor:pointer;transition:.12s;box-shadow:4px 4px 0 var(--ink);
+  }
+  .deck-btn:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+  .deck-btn.on{background:var(--ink);color:#fff;box-shadow:none;transform:none}
+
+  .game{max-width:600px;margin:20px auto;padding:0 20px 60px;text-align:center}
+  .stats{display:flex;justify-content:center;gap:30px;font-size:.9rem;font-weight:700;margin-bottom:18px}
+  .stats .n{font-size:1.5rem;color:var(--ink)}
+  .stats .c .n{color:var(--teal)}.stats .w .n{color:var(--coral)}
+  .stats .r .n{color:var(--violet)}
+
+  .card-wrap{perspective:1200px;margin:0 auto 24px;cursor:pointer}
+  .card-inner{
+    position:relative;width:100%;padding-bottom:66%;transition:transform .5s cubic-bezier(.2,.9,.4,1.1);
+    transform-style:preserve-3d;
+  }
+  .card-wrap.flipped .card-inner{transform:rotateX(180deg)}
+  .card-face{
+    position:absolute;top:0;left:0;width:100%;height:100%;
+    border:3px solid var(--ink);border-radius:22px;box-shadow:8px 8px 0 var(--ink);
+    padding:32px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    backface-visibility:hidden;overflow:hidden;
+  }
+  .card-front{background:#fff;z-index:2}
+  .card-front .label{font-size:.7rem;font-weight:800;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+  .card-front .q{font-size:clamp(1.05rem,3vw,1.35rem);font-weight:700;line-height:1.6;max-width:90%}
+  .card-back{background:var(--teal);color:#fff;transform:rotateX(180deg)}
+  .card-back .a{font-size:clamp(1rem,2.8vw,1.3rem);line-height:1.7;max-width:90%;font-weight:600}
+  .hint{font-size:.78rem;color:var(--muted);margin-bottom:8px}
+
+  .btn-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+  .btn{
+    padding:12px 28px;border-radius:14px;font-weight:800;font-size:.9rem;
+    border:3px solid var(--ink);cursor:pointer;transition:.12s;box-shadow:6px 6px 0 var(--ink);background:#fff;
+  }
+  .btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+  .btn-correct{background:var(--teal);color:#fff}
+  .btn-wrong{background:var(--coral);color:#fff}
+  .btn-next{background:var(--ink);color:#fff}
+  .btn-shuffle{margin-top:30px;background:var(--mustard);color:var(--ink);display:inline-block}
+
+  .empty{text-align:center;padding:80px 20px;color:var(--muted)}
+  .empty .big{font-size:4rem;margin-bottom:14px}
+
+  @media(max-width:560px){
+    nav{padding:10px 14px}
+    .card-face{padding:20px 16px}
+    .card-front .q{font-size:1rem}
+    .stats{gap:16px;font-size:.8rem}
+  }
 </style>
 </head>
 <body>
+
 <nav>
   <a class="logo" href="index.html"><img src="assets/MWK_logo.png" alt="MWK" class="logo-img">CALFSS<em>CHEM</em></a>
   <div class="navlinks">
@@ -37,16 +92,171 @@
     <a href="cards.html" class="on">🃏 Concept Cards</a>
   </div>
 </nav>
-<div class="soon"><div class="box">
-  <div class="big">🃏</div>
-  <h1>Concept Cards</h1>
-  <p>翻卡式溫習：前面問題、背面答案，自測概念記唔記得牢。功能預告：</p>
-  <div class="plan">
-    <div>🔄 <b>翻卡設計</b> — 撳卡翻面，鍵盤 ←/→ 切換</div>
-    <div>📚 <b>按課題分組</b> — DSE 12 個課題，邊課弱就溫邊課</div>
-    <div>📊 <b>學習進度標記</b> — 「未學 / 學緊 / 已識」，自動儲存進度</div>
+
+<div class="page-head"><h1>🃏 Concept Cards</h1></div>
+<div class="deck-bar" id="deckBar"></div>
+
+<div class="game" id="game">
+  <div class="empty" id="empty">
+    <div class="big">🃏</div>
+    <b>揀選一個課題開始溫習</b>
   </div>
-  <a class="home" href="index.html">← 返回首頁</a>
-</div></div>
+</div>
+
+<script src="cards/cards.js"></script>
+<script>
+  let cards = [];
+  let currentIdx = 0;
+  let correct = 0, wrong = 0;
+  let totalCards = 0;
+  let flipped = false;
+  let currentDeck = null;
+
+  const deckBar = document.getElementById('deckBar');
+  const gameEl = document.getElementById('game');
+  const emptyEl = document.getElementById('empty');
+
+  function renderDecks() {
+    deckBar.innerHTML = CARD_DECKS.map(d =>
+      `<button class="deck-btn${currentDeck === d.id ? ' on' : ''}" data-id="${d.id}">${d.emoji} ${d.title}</button>`
+    ).join('');
+    deckBar.querySelectorAll('.deck-btn').forEach(b =>
+      b.addEventListener('click', () => loadDeck(b.dataset.id))
+    );
+  }
+
+  async function loadDeck(id) {
+    const deck = CARD_DECKS.find(d => d.id === id);
+    if (!deck) return;
+    currentDeck = id;
+    renderDecks();
+
+    try {
+      const res = await fetch('cards/' + deck.file);
+      const csv = await res.text();
+      const lines = csv.trim().split('\n').filter(l => l.trim());
+      cards = lines.map(l => {
+        // split on first comma only (answers may contain commas)
+        const idx = l.indexOf(',');
+        return { q: l.slice(0, idx).trim(), a: l.slice(idx + 1).trim() };
+      }).filter(c => c.q && c.a);
+      totalCards = cards.length;
+      correct = 0; wrong = 0; flipped = false; currentIdx = 0;
+      shuffle(cards);
+      renderGame();
+      showCard();
+    } catch(e) {
+      gameEl.innerHTML = `<div class="empty"><div class="big">❌</div><b>載入失敗</b><br><small>${e.message}</small></div>`;
+    }
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  function renderGame() {
+    if (!totalCards) return;
+    gameEl.innerHTML = `
+      <div class="stats">
+        <div class="c">✅ 正確 <div class="n" id="correct">${correct}</div></div>
+        <div class="w">❌ 錯誤 <div class="n" id="wrong">${wrong}</div></div>
+        <div class="r">📊 答對率 <div class="n" id="rate">${correct+wrong > 0 ? Math.round(correct/(correct+wrong)*100) : 0}%</div></div>
+      </div>
+      <div class="card-wrap" id="cardWrap">
+        <div class="card-inner">
+          <div class="card-face card-front">
+            <div class="label">❓ 問題</div>
+            <div class="q" id="question"></div>
+          </div>
+          <div class="card-face card-back">
+            <div class="a" id="answer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="hint" id="hint">🖱️ 撳張卡睇答案</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:14px" id="progress"></div>
+      <div class="btn-row" id="btnRow">
+        <button class="btn btn-correct" id="btnCorrect">✅ 正確</button>
+        <button class="btn btn-wrong" id="btnWrong">❌ 錯誤</button>
+        <button class="btn btn-next" id="btnNext">下一張 →</button>
+      </div>
+      <button class="btn btn-shuffle" id="btnShuffle">🔀 重新洗牌</button>
+    `;
+    document.getElementById('btnCorrect').addEventListener('click', () => mark(true));
+    document.getElementById('btnWrong').addEventListener('click', () => mark(false));
+    document.getElementById('btnNext').addEventListener('click', nextCard);
+    document.getElementById('btnShuffle').addEventListener('click', () => { shuffle(cards); currentIdx = 0; flipped = false; showCard(); });
+    document.getElementById('cardWrap').addEventListener('click', toggleFlip);
+    document.addEventListener('keydown', keyHandler);
+  }
+
+  function keyHandler(e) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleFlip(); }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); nextCard(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prevCard(); }
+  }
+
+  function toggleFlip() {
+    const wrap = document.getElementById('cardWrap');
+    if (!wrap) return;
+    flipped = !flipped;
+    wrap.classList.toggle('flipped', flipped);
+    document.getElementById('hint').textContent = flipped ? '💡 答案顯示中' : '🖱️ 撳張卡睇答案';
+  }
+
+  function showCard() {
+    if (!cards.length) return;
+    if (currentIdx >= cards.length) { currentIdx = 0; shuffle(cards); }
+    const card = cards[currentIdx];
+    document.getElementById('question').textContent = card.q;
+    document.getElementById('answer').textContent = card.a;
+    // render $...$ with KaTeX
+    if (window.renderMathInElement) {
+      try { renderMathInElement(document.getElementById('question'), {delimiters:[{left:'$',right:'$',display:false}],throwOnError:false}); } catch(e){}
+      try { renderMathInElement(document.getElementById('answer'), {delimiters:[{left:'$',right:'$',display:false}],throwOnError:false}); } catch(e){}
+    }
+    document.getElementById('progress').textContent = `${currentIdx + 1} / ${totalCards}`;
+    const wrap = document.getElementById('cardWrap');
+    if (wrap) wrap.classList.remove('flipped');
+    flipped = false;
+    document.getElementById('hint').textContent = '🖱️ 撳張卡睇答案';
+  }
+
+  function mark(isCorrect) {
+    if (isCorrect) { correct++; } else { wrong++; }
+    const total = correct + wrong;
+    document.getElementById('correct').textContent = correct;
+    document.getElementById('wrong').textContent = wrong;
+    document.getElementById('rate').textContent = total > 0 ? Math.round(correct/total*100) + '%' : '0%';
+    // disable buttons until next card
+    document.getElementById('btnCorrect').disabled = true;
+    document.getElementById('btnWrong').disabled = true;
+  }
+
+  function nextCard() {
+    currentIdx++;
+    if (currentIdx >= cards.length) {
+      // show completion
+      const total = correct + wrong;
+      const pct = total > 0 ? Math.round(correct/total*100) : 0;
+      alert(`🎉 完成呢副牌！\n✅ 正確: ${correct}\n❌ 錯誤: ${wrong}\n📊 答對率: ${pct}%\n\n即將重新洗牌開始新一輪。`);
+      shuffle(cards);
+      currentIdx = 0;
+      correct = 0; wrong = 0;
+    }
+    document.getElementById('btnCorrect').disabled = false;
+    document.getElementById('btnWrong').disabled = false;
+    showCard();
+  }
+
+  function prevCard() {
+    if (currentIdx > 0) { currentIdx--; showCard(); }
+  }
+
+  renderDecks();
+</script>
 </body>
 </html>
