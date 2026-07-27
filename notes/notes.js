@@ -22,6 +22,13 @@ const DSE_TOPICS = [
 
 const NOTES = [
   {
+    title: '分子間引力：沸點比較答題規範',
+    topic: 'VI. 微觀世界 II',
+    type: 'md',
+    file: 'md/intermolecular-forces-boiling-point.md',
+    desc: '氫鍵 vs 范德華力、熔沸點比較邏輯、表面張力、黏度、DSE 必背句式'
+  },
+  {
     title: '分子晶體：冰與水的結構與性質',
     topic: 'VI. 微觀世界 II',
     type: 'md',
