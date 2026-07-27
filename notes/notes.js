@@ -22,6 +22,13 @@ const DSE_TOPICS = [
 
 const NOTES = [
   {
+    title: '鍵極性與分子極性答題規範',
+    topic: 'VI. 微觀世界 II',
+    type: 'md',
+    file: 'md/bond-polarity-molecular-polarity.md',
+    desc: '極性鍵形成、分子極性判斷邏輯、帶電棒實驗題型、DSE 常見分子速查表'
+  },
+  {
     title: '分子形狀預測指南（VSEPR 學說）',
     topic: 'VI. 微觀世界 II',
     type: 'md',
