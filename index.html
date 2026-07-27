@@ -152,9 +152,25 @@
   .foot-small{color:var(--muted);font-size:.72rem;margin-top:18px}
 
   @media(max-width:560px){
-    nav{padding:12px 16px}
-    .hero,section{padding-left:16px;padding-right:16px}
-    .cta-row{gap:14px}
+    nav{padding:10px 14px;gap:6px;flex-wrap:wrap}
+    .logo{font-size:1rem;gap:6px}
+    .logo-img{height:28px}
+    .navlinks{gap:4px;padding:0;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .navlinks a{font-size:.72rem;padding:6px 10px}
+    .nav-cta{padding:6px 14px;font-size:.75rem;box-shadow:3px 3px 0 var(--ink)}
+    .hero{padding:40px 16px 32px}
+    .hero h1{font-size:clamp(2rem,10vw,2.8rem);letter-spacing:-1.5px}
+    .hero p{font-size:.9rem}
+    .cta-row{gap:12px;flex-direction:column}
+    .cta-row .btn{text-align:center;width:100%}
+    section{padding:40px 16px}
+    .sec-head h2{font-size:1.4rem}
+    .mods{grid-template-columns:1fr;gap:16px}
+    .mod{min-height:180px;padding:20px 18px}
+    .mod .chip{width:48px;height:48px;font-size:1.4rem;top:16px;left:16px}
+    .mod .count{font-size:.65rem;padding:3px 10px;top:16px;right:16px}
+    .foot-big{font-size:clamp(2.5rem,12vw,5rem)}
+    .confetti{display:none}
   }
 </style>
 </head>
