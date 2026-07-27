@@ -22,6 +22,13 @@ const DSE_TOPICS = [
 
 const NOTES = [
   {
+    title: '分子形狀預測指南（VSEPR 學說）',
+    topic: 'VI. 微觀世界 II',
+    type: 'md',
+    file: 'md/vsepr-molecular-shapes.md',
+    desc: '價層電子對相斥理論、分子形狀總覽表、水分子 V-shaped 判定步驟'
+  },
+  {
     title: '酸和鹽基 — 核心概念速覽（示範）',
     topic: 'IV. 酸和鹽基',
     type: 'md',
