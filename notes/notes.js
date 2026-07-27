@@ -22,6 +22,13 @@ const DSE_TOPICS = [
 
 const NOTES = [
   {
+    title: '分子晶體：冰與水的結構與性質',
+    topic: 'VI. 微觀世界 II',
+    type: 'md',
+    file: 'md/ice-water-molecular-crystal.md',
+    desc: '分子晶體定義、冰嘅敞開結構、密度異常、熔點與氫鍵關係'
+  },
+  {
     title: '鍵極性與分子極性答題規範',
     topic: 'VI. 微觀世界 II',
     type: 'md',
