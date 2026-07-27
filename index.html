@@ -223,7 +223,7 @@
       <p>按 DSE 12 個課題分類，PDF + 精簡版筆記，考前必讀</p>
     </a>
     <a class="mod m-game" href="games.html">
-      <span class="chip">🎮</span><span class="count">開發中</span>
+      <span class="chip">🎮</span><span class="count" id="cnt-game">陸續新增</span>
       <span class="corner"></span>
       <h3>化學小遊戲</h3>
       <p>方程式配平挑戰、元素週期表配對 — 玩住學化學</p>
@@ -259,6 +259,7 @@
 </footer>
 
 <script src="sims.js"></script>
+<script src="games/games.js"></script>
 <script>
   // 最新加入：取 sims.js 頭 4 個
   const BG={chemistry:'#e3edff',physics:'#ffe3f1',biology:'#fff3d6',is:'#e6e3ff'};
@@ -269,6 +270,7 @@
       <div class="go">→</div>
     </a>`).join('');
   document.getElementById('cnt-sim').textContent = SIMS.length + ' 個';
+  document.getElementById('cnt-game').textContent = GAMES.length + ' 個';
 </script>
 </body>
 </html>

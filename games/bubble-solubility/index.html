@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>沉澱泡泡龍 - 離子水溶性溫習遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f0fdf4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: manipulation;
+            overflow-x: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #1e293b;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 10;
+        }
+        .hidden { display: none !important; }
+        .table-container {
+            overflow-x: auto;
+        }
+        table.solubility-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        table.solubility-table th, table.solubility-table td {
+            border: 1px solid #cbd5e1;
+            padding: 4px;
+        }
+        table.solubility-table th { background-color: #f1f5f9; font-weight: bold; }
+        .cell-v { background-color: #dcfce7; color: #166534; }
+        .cell-x { background-color: #fee2e2; color: #991b1b; font-weight: bold; }
+        .cell-m { background-color: #fef08a; color: #854d0e; font-weight: bold; }
+    </style>
+</head>
+<body class="p-2 md:p-6 text-slate-800 flex flex-col md:flex-row gap-6 justify-center items-start min-h-screen">
+
+    <!-- 遊戲主體區 -->
+    <div class="w-full md:w-auto flex-shrink-0">
+        <div class="mb-4 text-center">
+            <h1 class="text-3xl font-bold text-teal-700 tracking-wide">🔵 沉澱泡泡龍 💥</h1>
+            <p class="text-sm text-slate-500 mt-1">發射離子！形成<span class="font-bold text-red-500">沉澱物 (不溶/微溶)</span> 即可消除泡泡！</p>
+            <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm mt-3 border border-teal-100">
+                <div class="text-lg font-bold">分數: <span id="score-display" class="text-teal-600">0</span></div>
+                <div class="text-sm">級別: <span id="level-display" class="font-bold">1</span></div>
+            </div>
+        </div>
+
+        <div id="game-container">
+            <canvas id="gameCanvas" width="450" height="650"></canvas>
+            
+            <!-- 開始畫面 -->
+            <div id="start-screen" class="overlay">
+                <h2 class="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-blue-500">沉澱泡泡龍</h2>
+                <ul class="text-left space-y-2 mb-8 max-w-xs text-sm">
+                    <li>🎯 瞄準並發射下方的離子泡泡。</li>
+                    <li>💥 當相撞的兩個離子結合為 <b>不溶 (x)</b> 或 <b>微溶 (微)</b> 的化合物時，就會產生沉澱並消除！</li>
+                    <li>💧 若組合為 <b>可溶 (v)</b>，泡泡會黏在盤面上。</li>
+                    <li>⚠️ 消除泡泡會讓失去連接的泡泡掉落，獲得額外高分！</li>
+                    <li>⏳ 發射一定次數後，天花板會下降。</li>
+                </ul>
+                <button id="start-btn" class="px-8 py-3 bg-teal-500 hover:bg-teal-400 text-white rounded-full font-bold text-xl transition transform hover:scale-105 shadow-lg">開始溫習</button>
+            </div>
+
+            <!-- 結束畫面 -->
+            <div id="game-over-screen" class="overlay hidden">
+                <h2 class="text-4xl font-bold mb-2 text-red-400">遊戲結束</h2>
+                <p class="text-xl mb-6">最終分數: <span id="final-score" class="font-bold text-yellow-300">0</span></p>
+                <button id="restart-btn" class="px-8 py-3 bg-teal-500 hover:bg-teal-400 text-white rounded-full font-bold text-xl transition transform hover:scale-105 shadow-lg">重新挑戰</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側/下方 教學提示區 -->
+    <div class="w-full md:max-w-md bg-white p-5 rounded-xl shadow-md border border-slate-200">
+        <h3 class="text-xl font-bold mb-3 border-b pb-2 flex items-center justify-between">
+            <span>📚 水溶性參考表</span>
+            <span class="text-xs font-normal bg-blue-100 text-blue-800 px-2 py-1 rounded">提示：找紅色/黃色格子</span>
+        </h3>
+        
+        <div class="table-container mb-4">
+            <table class="solubility-table">
+                <thead>
+                    <tr>
+                        <th>陽 \ 陰</th>
+                        <th>NO₃⁻<br><span class="text-[10px] font-normal text-gray-500">硝酸根</span></th>
+                        <th>Cl⁻<br><span class="text-[10px] font-normal text-gray-500">氯離子</span></th>
+                        <th>SO₄²⁻<br><span class="text-[10px] font-normal text-gray-500">硫酸根</span></th>
+                        <th>CO₃²⁻<br><span class="text-[10px] font-normal text-gray-500">碳酸根</span></th>
+                        <th>OH⁻<br><span class="text-[10px] font-normal text-gray-500">氫氧離子</span></th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Javascript 動態生成 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="text-sm space-y-1 text-slate-600 bg-slate-50 p-3 rounded-lg">
+            <p><span class="inline-block w-4 h-4 bg-[#dcfce7] border border-[#166534] align-middle mr-1"></span> <b>v = 溶</b>：不反應，泡泡會黏住。</p>
+            <p><span class="inline-block w-4 h-4 bg-[#fee2e2] border border-[#991b1b] align-middle mr-1"></span> <b>x = 不溶</b>：產生沉澱，<span class="text-red-600 font-bold">泡泡消除！</span></p>
+            <p><span class="inline-block w-4 h-4 bg-[#fef08a] border border-[#854d0e] align-middle mr-1"></span> <b>微 = 微溶</b>：產生沉澱，<span class="text-red-600 font-bold">泡泡消除！</span></p>
+            <hr class="my-2 border-slate-200">
+            <p class="font-bold text-slate-700">💡 消除秘訣：</p>
+            <ul class="list-disc pl-5">
+                <li><b class="text-blue-600">K⁺, Na⁺, NH₄⁺, NO₃⁻</b> 幾乎溶於一切，把它們當作障礙物，透過消除它們上方的泡泡讓它們掉落！</li>
+                <li>用 <b class="text-gray-700">Ag⁺, Pb²⁺</b> 去打 <b class="text-green-600">Cl⁻</b> (生成 AgCl, PbCl₂)。</li>
+                <li>用 <b class="text-purple-600">Ba²⁺, Ca²⁺, Pb²⁺</b> 去打 <b class="text-orange-500">SO₄²⁻</b>。</li>
+                <li>絕大部分金屬打 <b class="text-pink-600">CO₃²⁻</b> 和 <b class="text-cyan-600">OH⁻</b> 都會沉澱！</li>
+            </ul>
+        </div>
+    </div>
+
+<script>
+/**
+ * 遊戲資料與化學邏輯設定
+ */
+const IONS = {
+    'K+':   { symbol: 'K⁺',     type: 'cat', color: '#f87171' }, // Red
+    'Na+':  { symbol: 'Na⁺',    type: 'cat', color: '#fb923c' }, // Orange
+    'NH4+': { symbol: 'NH₄⁺',   type: 'cat', color: '#fbbf24' }, // Yellow
+    'Ba2+': { symbol: 'Ba²⁺',   type: 'cat', color: '#a3e635' }, // Lime
+    'Ca2+': { symbol: 'Ca²⁺',   type: 'cat', color: '#4ade80' }, // Green
+    'Mg2+': { symbol: 'Mg²⁺',   type: 'cat', color: '#34d399' }, // Emerald
+    'Zn2+': { symbol: 'Zn²⁺',   type: 'cat', color: '#2dd4bf' }, // Teal
+    'Pb2+': { symbol: 'Pb²⁺',   type: 'cat', color: '#94a3b8' }, // Slate (Lead)
+    'Cu2+': { symbol: 'Cu²⁺',   type: 'cat', color: '#38bdf8' }, // Sky (Blue)
+    'Ag+':  { symbol: 'Ag⁺',    type: 'cat', color: '#e2e8f0' }, // Gray/Silver
+    
+    'NO3-': { symbol: 'NO₃⁻',   type: 'an', color: '#fbcfe8' }, // Pink
+    'Cl-':  { symbol: 'Cl⁻',    type: 'an', color: '#d9f99d' }, // Light Lime
+    'SO42-':{ symbol: 'SO₄²⁻',  type: 'an', color: '#c4b5fd' }, // Purple
+    'CO32-':{ symbol: 'CO₃²⁻',  type: 'an', color: '#bae6fd' }, // Light Blue
+    'OH-':  { symbol: 'OH⁻',    type: 'an', color: '#fecaca' }  // Light Red
+};
+
+// 水溶性規則: v=可溶, x=不溶, m=微溶
+const RULES = {
+    'K+':   { 'NO3-': 'v', 'Cl-': 'v', 'SO42-': 'v', 'CO32-': 'v', 'OH-': 'v' },
+    'Na+':  { 'NO3-': 'v', 'Cl-': 'v', 'SO42-': 'v', 'CO32-': 'v', 'OH-': 'v' },
+    'NH4+': { 'NO3-': 'v', 'Cl-': 'v', 'SO42-': 'v', 'CO32-': 'v', 'OH-': 'v' },
+    'Ba2+': { 'NO3-': 'v', 'Cl-': 'v', 'SO42-': 'x', 'CO32-': 'x', 'OH-': 'v' },
+    'Ca2+': { 'NO3-': 'v', 'Cl-': 'v', 'SO42-': 'x', 'CO32-': 'x', 'OH-': 'm' },
+    'Mg2+': { 'NO3-': 'v', 'Cl-': 'v', 'SO42-': 'v', 'CO32-': 'x', 'OH-': 'x' },
+    'Zn2+': { 'NO3-': 'v', 'Cl-': 'v', 'SO42-': 'v', 'CO32-': 'x', 'OH-': 'x' },
+    'Pb2+': { 'NO3-': 'v', 'Cl-': 'x', 'SO42-': 'x', 'CO32-': 'x', 'OH-': 'x' },
+    'Cu2+': { 'NO3-': 'v', 'Cl-': 'v', 'SO42-': 'v', 'CO32-': 'x', 'OH-': 'x' },
+    'Ag+':  { 'NO3-': 'v', 'Cl-': 'x', 'SO42-': 'v', 'CO32-': 'x', 'OH-': 'x' }
+};
+
+// 沉澱物化學式快速查詢 (供遊戲特效顯示)
+const PRECIPITATES = {
+    'Ba2+_SO42-': 'BaSO₄ ↓', 'Ca2+_SO42-': 'CaSO₄ ↓', 'Pb2+_SO42-': 'PbSO₄ ↓',
+    'Ag+_Cl-': 'AgCl ↓', 'Pb2+_Cl-': 'PbCl₂ ↓',
+    'Ba2+_CO32-': 'BaCO₃ ↓', 'Ca2+_CO32-': 'CaCO₃ ↓', 'Mg2+_CO32-': 'MgCO₃ ↓',
+    'Zn2+_CO32-': 'ZnCO₃ ↓', 'Pb2+_CO32-': 'PbCO₃ ↓', 'Cu2+_CO32-': 'CuCO₃ ↓', 'Ag+_CO32-': 'Ag₂CO₃ ↓',
+    'Ca2+_OH-': 'Ca(OH)₂ ↓', 'Mg2+_OH-': 'Mg(OH)₂ ↓',
+    'Zn2+_OH-': 'Zn(OH)₂ ↓', 'Pb2+_OH-': 'Pb(OH)₂ ↓', 'Cu2+_OH-': 'Cu(OH)₂ ↓', 'Ag+_OH-': 'AgOH ↓'
+};
+
+function checkReaction(ion1, ion2) {
+    let cat = IONS[ion1].type === 'cat' ? ion1 : (IONS[ion2].type === 'cat' ? ion2 : null);
+    let an = IONS[ion1].type === 'an' ? ion1 : (IONS[ion2].type === 'an' ? ion2 : null);
+    if (!cat || !an) return { reacts: false }; // 同種離子不反應
+    
+    let state = RULES[cat][an];
+    if (state === 'x' || state === 'm') {
+        let formula = PRECIPITATES[`${cat}_${an}`] || '沉澱物 ↓';
+        return { reacts: true, formula: formula };
+    }
+    return { reacts: false };
+}
+
+// 產生 UI 參考表
+const tbody = document.getElementById('table-body');
+const cationsOrder = ['K+', 'Na+', 'NH4+', 'Ba2+', 'Ca2+', 'Mg2+', 'Zn2+', 'Pb2+', 'Cu2+', 'Ag+'];
+const anionsOrder = ['NO3-', 'Cl-', 'SO42-', 'CO32-', 'OH-'];
+
+cationsOrder.forEach(cat => {
+    let tr = document.createElement('tr');
+    let th = document.createElement('th');
+    th.textContent = IONS[cat].symbol;
+    tr.appendChild(th);
+    
+    anionsOrder.forEach(an => {
+        let td = document.createElement('td');
+        let state = RULES[cat][an];
+        td.textContent = state;
+        if(state === 'v') td.className = 'cell-v';
+        else if(state === 'x') td.className = 'cell-x';
+        else if(state === 'm') { td.textContent = '微'; td.className = 'cell-m'; }
+        tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+});
+
+/**
+ * 簡易音效合成器 (Web Audio API)
+ */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    const now = audioCtx.currentTime;
+    if (type === 'shoot') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'pop') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.15);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now); osc.stop(now + 0.15);
+    } else if (type === 'drop') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'stick') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, now);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+    }
+}
+
+/**
+ * 遊戲引擎核心
+ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const COLS = 11; // 每列最多 11 個
+const RADIUS = 20; // 泡泡半徑
+const DIA = RADIUS * 2;
+const ROW_HEIGHT = RADIUS * Math.sqrt(3);
+
+let gameState = 'start'; // start, playing, gameover
+let grid = []; // 2D 陣列存儲盤面泡泡
+let floatingTexts = []; // 動畫文字
+let particles = []; // 爆破粒子
+let fallingBubbles = []; // 掉落的泡泡
+let rowOffsetParity = 0; // 0 = 偶數行靠左, 1 = 奇數行靠左
+
+let currentBubble = null;
+let nextBubbleIon = null;
+let mouseX = canvas.width / 2;
+let mouseY = canvas.height / 2;
+let shootAngle = -Math.PI / 2;
+
+let score = 0;
+let level = 1;
+let shotsFired = 0;
+const SHOTS_PER_DROP = 6;
+let dropLineY = 0; // 天花板位置
+
+const activeIonPool = ['Na+', 'Ba2+', 'Ca2+', 'Pb2+', 'Ag+', 'NO3-', 'Cl-', 'SO42-', 'CO32-', 'OH-'];
+
+function getRandomIon() {
+    return activeIonPool[Math.floor(Math.random() * activeIonPool.length)];
+}
+
+function initGame() {
+    grid = [];
+    rowOffsetParity = 0;
+    dropLineY = 0;
+    score = 0;
+    level = 1;
+    shotsFired = 0;
+    updateScore();
+    
+    // 初始化 6 行泡泡
+    for (let r = 0; r < 6; r++) {
+        let row = [];
+        let colsInRow = (r % 2 === rowOffsetParity) ? COLS : COLS - 1;
+        for (let c = 0; c < colsInRow; c++) {
+            row.push(getRandomIon());
+        }
+        grid.push(row);
+    }
+    
+    nextBubbleIon = getRandomIon();
+    spawnBubble();
+    
+    gameState = 'playing';
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('game-over-screen').classList.add('hidden');
+    
+    requestAnimationFrame(gameLoop);
+}
+
+function spawnBubble() {
+    currentBubble = {
+        x: canvas.width / 2,
+        y: canvas.height - 30,
+        ion: nextBubbleIon,
+        vx: 0, vy: 0,
+        isMoving: false
+    };
+    nextBubbleIon = getRandomIon();
+}
+
+function getHexCenter(row, col) {
+    let isOffsetRow = (row % 2 !== rowOffsetParity);
+    let x = col * DIA + RADIUS + (isOffsetRow ? RADIUS : 0);
+    let y = dropLineY + row * ROW_HEIGHT + RADIUS;
+    return { x, y };
+}
+
+// 取得泡泡目前對應的最接近網格座標
+function getGridPos(x, y) {
+    let row = Math.round((y - dropLineY - RADIUS) / ROW_HEIGHT);
+    if (row < 0) row = 0;
+    
+    let isOffsetRow = (row % 2 !== rowOffsetParity);
+    let col = Math.round((x - RADIUS - (isOffsetRow ? RADIUS : 0)) / DIA);
+    
+    let maxCols = isOffsetRow ? COLS - 1 : COLS;
+    if (col < 0) col = 0;
+    if (col >= maxCols) col = maxCols - 1;
+    
+    return { row, col };
+}
+
+function getNeighbors(row, col) {
+    let neighbors = [];
+    let isOffsetRow = (row % 2 !== rowOffsetParity);
+    
+    // 鄰居的相對座標偏移
+    let offsets;
+    if (isOffsetRow) {
+        offsets = [[-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0], [1, 1]];
+    } else {
+        offsets = [[-1, -1], [-1, 0], [0, -1], [0, 1], [1, -1], [1, 0]];
+    }
+    
+    for (let off of offsets) {
+        let nr = row + off[0];
+        let nc = col + off[1];
+        if (nr >= 0 && nr < grid.length && nc >= 0) {
+            let maxC = (nr % 2 !== rowOffsetParity) ? COLS - 1 : COLS;
+            if (nc < maxC && grid[nr] && grid[nr][nc]) {
+                neighbors.push({ row: nr, col: nc, ion: grid[nr][nc] });
+            }
+        }
+    }
+    return neighbors;
+}
+
+function drawBubble(ctx, x, y, ionId, alpha = 1) {
+    const ion = IONS[ionId];
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    
+    // 泡泡本體
+    ctx.beginPath();
+    ctx.arc(x, y, RADIUS - 1, 0, Math.PI * 2);
+    ctx.fillStyle = ion.color;
+    ctx.fill();
+    
+    // 邊框
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = ion.type === 'cat' ? '#475569' : '#94a3b8'; // 陽離子深邊，陰離子淺邊
+    ctx.stroke();
+    
+    // 高光反光 (立體感)
+    ctx.beginPath();
+    ctx.arc(x - 6, y - 6, 4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.fill();
+
+    // 離子文字
+    ctx.fillStyle = '#0f172a';
+    ctx.font = "bold 14px sans-serif";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ion.symbol, x, y);
+    
+    ctx.restore();
+}
+
+// 檢查是否碰撞並停止
+function processCollision() {
+    // 檢查天花板
+    if (currentBubble.y <= dropLineY + RADIUS) {
+        snapAndResolve();
+        return;
+    }
+
+    // 檢查與盤面上泡泡的距離
+    for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+            if (grid[r][c]) {
+                let center = getHexCenter(r, c);
+                let dx = currentBubble.x - center.x;
+                let dy = currentBubble.y - center.y;
+                let distSq = dx*dx + dy*dy;
+                if (distSq < (DIA * DIA) - 10) { // 稍微縮小碰撞體積讓手感更好
+                    snapAndResolve();
+                    return;
+                }
+            }
+        }
+    }
+}
+
+function snapAndResolve() {
+    currentBubble.isMoving = false;
+    
+    // 計算應卡入的網格位置
+    let pos = getGridPos(currentBubble.x, currentBubble.y);
+    let r = pos.row;
+    let c = pos.col;
+
+    // 確保有足夠的行數
+    while (grid.length <= r) {
+        grid.push(new Array((grid.length % 2 === rowOffsetParity) ? COLS : COLS - 1).fill(null));
+    }
+    
+    // 如果位置被佔用，往下方找空位 (簡單處理)
+    if (grid[r][c]) {
+        r++;
+        if (grid.length <= r) grid.push(new Array((r % 2 === rowOffsetParity) ? COLS : COLS - 1).fill(null));
+        c = Math.min(c, grid[r].length - 1);
+    }
+
+    grid[r][c] = currentBubble.ion;
+    let newCenter = getHexCenter(r, c);
+    
+    // === 化學反應結算 ===
+    let neighbors = getNeighbors(r, c);
+    let reactList = [];
+    let formulas = [];
+    
+    for (let n of neighbors) {
+        let reaction = checkReaction(currentBubble.ion, n.ion);
+        if (reaction.reacts) {
+            reactList.push({row: n.row, col: n.col});
+            if (!formulas.includes(reaction.formula)) formulas.push(reaction.formula);
+        }
+    }
+    
+    if (reactList.length > 0) {
+        playSound('pop');
+        // 加入自己
+        reactList.push({row: r, col: c});
+        
+        // 刪除並產生粒子
+        reactList.forEach(pos => {
+            let center = getHexCenter(pos.row, pos.col);
+            createParticles(center.x, center.y, grid[pos.row][pos.col]);
+            grid[pos.row][pos.col] = null;
+        });
+        
+        // 顯示化學式
+        formulas.forEach((f, idx) => {
+            floatingTexts.push({
+                x: newCenter.x, 
+                y: newCenter.y - (idx * 20),
+                text: f,
+                life: 60,
+                maxLife: 60
+            });
+        });
+
+        score += reactList.length * 10;
+        updateScore();
+        
+        // 檢查懸空掉落
+        checkFloatingBubbles();
+        
+    } else {
+        // 沒有反應，黏住
+        playSound('stick');
+        shotsFired++;
+        if (shotsFired >= SHOTS_PER_DROP) {
+            shotsFired = 0;
+            addTopRow();
+        }
+    }
+    
+    // 檢查 GameOver (是否超過底線)
+    let isGameOver = false;
+    for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+            if (grid[r][c]) {
+                let center = getHexCenter(r, c);
+                if (center.y >= canvas.height - 60) {
+                    isGameOver = true;
+                }
+            }
+        }
+    }
+    
+    if (isGameOver) {
+        endGame();
+    } else {
+        spawnBubble();
+    }
+}
+
+function checkFloatingBubbles() {
+    let visited = Array(grid.length).fill(0).map((_, i) => Array(grid[i] ? grid[i].length : 0).fill(false));
+    let queue = [];
+    
+    // 從第一行所有存在的泡泡開始 BFS
+    if (grid[0]) {
+        for (let c = 0; c < grid[0].length; c++) {
+            if (grid[0][c]) {
+                queue.push({r: 0, c: c});
+                visited[0][c] = true;
+            }
+        }
+    }
+    
+    while (queue.length > 0) {
+        let curr = queue.shift();
+        let neighbors = getNeighbors(curr.r, curr.c);
+        for (let n of neighbors) {
+            if (!visited[n.row][n.col]) {
+                visited[n.row][n.col] = true;
+                queue.push({r: n.row, c: n.col});
+            }
+        }
+    }
+    
+    // 找出沒被 visited 的泡泡並掉落
+    let droppedCount = 0;
+    for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+            if (grid[r][c] && !visited[r][c]) {
+                let center = getHexCenter(r, c);
+                fallingBubbles.push({
+                    x: center.x, y: center.y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: 0,
+                    ion: grid[r][c]
+                });
+                grid[r][c] = null;
+                droppedCount++;
+            }
+        }
+    }
+    
+    if (droppedCount > 0) {
+        playSound('drop');
+        score += droppedCount * 20; // 掉落有獎勵分
+        updateScore();
+    }
+}
+
+function addTopRow() {
+    rowOffsetParity = 1 - rowOffsetParity; // 切換奇偶位移
+    let newRow = [];
+    let colsInRow = (0 % 2 === rowOffsetParity) ? COLS : COLS - 1;
+    for (let c = 0; c < colsInRow; c++) {
+        newRow.push(getRandomIon());
+    }
+    grid.unshift(newRow); // 插入最上方
+    
+    // 修剪底部空行
+    while(grid.length > 0 && grid[grid.length-1].every(v => v === null)) {
+        grid.pop();
+    }
+    
+    dropLineY += 5; // 每次加行天花板略微下降增加壓迫感
+}
+
+function createParticles(x, y, ionId) {
+    const color = IONS[ionId].color;
+    for(let i=0; i<8; i++) {
+        particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 10,
+            vy: (Math.random() - 0.5) * 10,
+            life: 30, color: color
+        });
+    }
+}
+
+function updateScore() {
+    document.getElementById('score-display').innerText = score;
+    if (score > level * 500) {
+        level++;
+        document.getElementById('level-display').innerText = level;
+    }
+}
+
+function endGame() {
+    gameState = 'gameover';
+    document.getElementById('final-score').innerText = score;
+    document.getElementById('game-over-screen').classList.remove('hidden');
+}
+
+// 繪製瞄準線
+function drawAimLine() {
+    if(!currentBubble || currentBubble.isMoving) return;
+    
+    ctx.beginPath();
+    ctx.moveTo(currentBubble.x, currentBubble.y);
+    
+    let length = 150;
+    let ex = currentBubble.x + Math.cos(shootAngle) * length;
+    let ey = currentBubble.y + Math.sin(shootAngle) * length;
+    
+    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.setLineDash([]);
+}
+
+function gameLoop() {
+    if (gameState !== 'playing') return;
+    
+    // 清除畫面
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 畫天花板危險線
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(0, 0, canvas.width, dropLineY);
+    ctx.beginPath();
+    ctx.moveTo(0, dropLineY);
+    ctx.lineTo(canvas.width, dropLineY);
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.stroke();
+    
+    // 畫底線 (警戒線)
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height - 60);
+    ctx.lineTo(canvas.width, canvas.height - 60);
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)'; ctx.stroke();
+
+    // 繪製盤面泡泡
+    for (let r = 0; r < grid.length; r++) {
+        if (!grid[r]) continue;
+        for (let c = 0; c < grid[r].length; c++) {
+            if (grid[r][c]) {
+                let pos = getHexCenter(r, c);
+                drawBubble(ctx, pos.x, pos.y, grid[r][c]);
+            }
+        }
+    }
+    
+    // 繪製掉落中的泡泡
+    for (let i = fallingBubbles.length - 1; i >= 0; i--) {
+        let b = fallingBubbles[i];
+        b.vy += 0.5; // 重力
+        b.x += b.vx;
+        b.y += b.vy;
+        drawBubble(ctx, b.x, b.y, b.ion);
+        if (b.y > canvas.height + RADIUS) {
+            fallingBubbles.splice(i, 1);
+        }
+    }
+    
+    // 繪製並更新粒子
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.life--;
+        ctx.globalAlpha = p.life / 30;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 1;
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+    
+    // 繪製浮動文字 (沉澱化學式)
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        let ft = floatingTexts[i];
+        ft.y -= 1; ft.life--;
+        ctx.globalAlpha = ft.life / ft.maxLife;
+        ctx.fillStyle = '#fffae6';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.font = "bold 20px sans-serif";
+        ctx.textAlign = 'center';
+        ctx.strokeText(ft.text, ft.x, ft.y);
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.globalAlpha = 1;
+        if (ft.life <= 0) floatingTexts.splice(i, 1);
+    }
+
+    // 繪製砲台/下一個泡泡提示
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.beginPath(); ctx.arc(canvas.width/2, canvas.height - 30, RADIUS + 10, 0, Math.PI*2); ctx.fill();
+    
+    // 畫下一個泡泡預覽 (右下角)
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "#cbd5e1";
+    ctx.fillText("Next", canvas.width - 40, canvas.height - 50);
+    drawBubble(ctx, canvas.width - 40, canvas.height - 25, nextBubbleIon, 0.7);
+
+    // 繪製目前發射泡泡
+    if (currentBubble) {
+        if (!currentBubble.isMoving) drawAimLine();
+        
+        drawBubble(ctx, currentBubble.x, currentBubble.y, currentBubble.ion);
+        
+        if (currentBubble.isMoving) {
+            currentBubble.x += currentBubble.vx;
+            currentBubble.y += currentBubble.vy;
+            
+            // 牆壁反彈
+            if (currentBubble.x <= RADIUS) {
+                currentBubble.x = RADIUS; currentBubble.vx *= -1;
+            } else if (currentBubble.x >= canvas.width - RADIUS) {
+                currentBubble.x = canvas.width - RADIUS; currentBubble.vx *= -1;
+            }
+            
+            processCollision();
+        }
+    }
+    
+    requestAnimationFrame(gameLoop);
+}
+
+// 輸入控制
+canvas.addEventListener('mousemove', (e) => {
+    if (gameState !== 'playing' || !currentBubble || currentBubble.isMoving) return;
+    const rect = canvas.getBoundingClientRect();
+    // 計算滑鼠相對於 canvas 的座標並考慮縮放
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mouseX = (e.clientX - rect.left) * scaleX;
+    mouseY = (e.clientY - rect.top) * scaleY;
+    
+    let dx = mouseX - currentBubble.x;
+    let dy = mouseY - currentBubble.y;
+    shootAngle = Math.atan2(dy, dx);
+    
+    // 限制發射角度 (不能往下打)
+    if (shootAngle > -0.1) shootAngle = -0.1;
+    if (shootAngle < -Math.PI + 0.1) shootAngle = -Math.PI + 0.1;
+});
+
+canvas.addEventListener('mousedown', (e) => {
+    if (gameState !== 'playing' || !currentBubble || currentBubble.isMoving) return;
+    playSound('shoot');
+    const speed = 18;
+    currentBubble.vx = Math.cos(shootAngle) * speed;
+    currentBubble.vy = Math.sin(shootAngle) * speed;
+    currentBubble.isMoving = true;
+});
+
+// 手機觸控支援
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (gameState !== 'playing' || !currentBubble || currentBubble.isMoving) return;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    mouseX = (touch.clientX - rect.left) * scaleX;
+    mouseY = (touch.clientY - rect.top) * scaleY;
+    
+    let dx = mouseX - currentBubble.x;
+    let dy = mouseY - currentBubble.y;
+    shootAngle = Math.atan2(dy, dx);
+    if (shootAngle > -0.1) shootAngle = -0.1;
+    if (shootAngle < -Math.PI + 0.1) shootAngle = -Math.PI + 0.1;
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (gameState !== 'playing' || !currentBubble || currentBubble.isMoving) return;
+    playSound('shoot');
+    const speed = 18;
+    currentBubble.vx = Math.cos(shootAngle) * speed;
+    currentBubble.vy = Math.sin(shootAngle) * speed;
+    currentBubble.isMoving = true;
+}, { passive: false });
+
+// 按鈕事件
+document.getElementById('start-btn').addEventListener('click', () => {
+    // 確保 AudioContext 被啟動 (瀏覽器限制需由 user 互動觸發)
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    initGame();
+});
+
+document.getElementById('restart-btn').addEventListener('click', initGame);
+
+// 初始化繪製一下空盤背景
+ctx.fillStyle = '#1e293b';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+</script>
+</body>
+</html>
