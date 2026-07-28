@@ -22,6 +22,13 @@ const DSE_TOPICS = [
 
 const NOTES = [
   {
+    title: '化學電池溫習精華：原電池與二級電池對比',
+    topic: 'VII. 氧化還原反應、化學電池和電解',
+    type: 'md',
+    file: 'md/electrochemical-cells.md',
+    desc: '六種 DSE 常見電池（鋅碳、鹼性錳、氧化銀、鋰離子、NiMH、鉛酸）正負極、電解質、電壓、用途對比表'
+  },
+  {
     title: '分子間引力：沸點比較答題規範',
     topic: 'VI. 微觀世界 II',
     type: 'md',
