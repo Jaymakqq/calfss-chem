@@ -26,13 +26,33 @@
   .page-head{padding:50px 28px 10px;max-width:800px;margin:0 auto}
   .page-head h1{font-size:clamp(1.8rem,5vw,3rem);font-weight:900;letter-spacing:-1.5px}
 
-  .deck-bar{display:flex;gap:8px;flex-wrap:wrap;padding:14px 28px;max-width:800px;margin:0 auto}
-  .deck-btn{
-    padding:8px 16px;border-radius:999px;border:3px solid var(--ink);background:#fff;
-    font-size:.78rem;font-weight:800;cursor:pointer;transition:.12s;box-shadow:4px 4px 0 var(--ink);
+  .wrap{display:flex;gap:26px;max-width:1100px;margin:0 auto;padding:14px 28px 40px;align-items:flex-start}
+  .toc{width:240px;flex-shrink:0;position:sticky;top:80px}
+  .toc button{
+    display:block;width:100%;text-align:left;background:none;border:none;padding:9px 14px;
+    font-size:.83rem;color:var(--muted);border-radius:10px;cursor:pointer;font-weight:600;transition:.12s;
   }
-  .deck-btn:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
-  .deck-btn.on{background:var(--ink);color:#fff;box-shadow:none;transform:none}
+  .toc button:hover{background:#efece5;color:var(--ink)}
+  .toc button.on{background:var(--ink);color:#fff}
+  .toc .all{font-weight:800;color:var(--ink)}
+  .list{flex:1;display:grid;gap:14px;min-width:0}
+  .deck-card{
+    display:flex;gap:16px;align-items:center;background:#fff;border:3px solid var(--ink);
+    border-radius:16px;padding:18px 20px;text-decoration:none;color:var(--ink);transition:.15s;cursor:pointer;
+    box-shadow:6px 6px 0 var(--ink);
+  }
+  .deck-card:hover{transform:translate(3px,3px);box-shadow:3px 3px 0 var(--ink)}
+  .deck-card .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:1.25rem;flex-shrink:0;background:#e6e3ff}
+  .deck-card .t{font-weight:800;font-size:.95rem}
+  .deck-card .s{font-size:.76rem;color:var(--muted);margin-top:3px}
+  .deck-card .go{margin-left:auto;color:var(--muted);font-weight:800}
+  .empty{text-align:center;padding:70px 24px;color:var(--muted);background:#fff;border:1.5px dashed var(--line);border-radius:20px}
+  .empty .big{font-size:3rem;margin-bottom:12px}
+  .back-btn{
+    display:inline-block;margin-bottom:16px;padding:8px 16px;border-radius:999px;
+    background:#fff;border:3px solid var(--ink);font-weight:800;font-size:.82rem;
+    cursor:pointer;box-shadow:4px 4px 0 var(--ink);text-decoration:none;color:var(--ink);
+  }
 
   .game{max-width:600px;margin:20px auto;padding:0 20px 60px;text-align:center}
   .stats{display:flex;justify-content:center;gap:30px;font-size:.9rem;font-weight:700;margin-bottom:18px}
@@ -106,6 +126,9 @@
 
   @media(max-width:560px){
     nav{padding:10px 14px}
+    .wrap{flex-direction:column;padding:10px 14px 30px}
+    .toc{width:100%;position:static;display:flex;flex-wrap:wrap;gap:6px}
+    .toc button{width:auto;padding:8px 12px;font-size:.78rem}
     .card-face{padding:20px 16px}
     .card-front .q{font-size:1rem}
     .stats{gap:16px;font-size:.8rem}
@@ -125,19 +148,17 @@
 </nav>
 
 <div class="page-head"><h1>🃏 Concept Cards</h1></div>
-<div class="deck-bar" id="deckBar"></div>
-
-<div class="game" id="game">
-  <div class="empty" id="empty">
-    <div class="big">🃏</div>
-    <b>揀選一個課題開始溫習</b>
-  </div>
+<div class="wrap">
+  <div class="toc" id="toc"></div>
+  <div class="list" id="list"></div>
 </div>
+<div class="game" id="game" style="display:none"></div>
 
+<!-- Hall of Fame panel -->
 <div class="hof" id="hofPanel">
   <div class="hof-box">
-    <h2>🏆 Hall of Fame</h2>
-    <div class="hof-sub">記錄喺你部裝置 · 答對率最高頭 20 次</div>
+    <h2>🏆 排行榜</h2>
+    <div class="hof-sub">全班同學最高分頭 20 次</div>
     <ul class="hof-list" id="hofList"></ul>
     <button class="hof-close" onclick="document.getElementById('hofPanel').classList.remove('open')">關閉</button>
   </div>
@@ -151,43 +172,67 @@
   let totalCards = 0;
   let flipped = false;
   let currentDeck = null;
+  let topic = 'all';
 
-  const deckBar = document.getElementById('deckBar');
+  const toc = document.getElementById('toc');
+  const listEl = document.getElementById('list');
   const gameEl = document.getElementById('game');
-  const emptyEl = document.getElementById('empty');
+  const wrapEl = document.querySelector('.wrap');
 
-  function renderDecks() {
-    deckBar.innerHTML = CARD_DECKS.map(d =>
-      `<button class="deck-btn${currentDeck === d.id ? ' on' : ''}" data-id="${d.id}">${d.emoji} ${d.title}</button>`
-    ).join('');
-    deckBar.querySelectorAll('.deck-btn').forEach(b =>
-      b.addEventListener('click', () => loadDeck(b.dataset.id))
-    );
+  function renderToc() {
+    const used = new Set(CARD_DECKS.map(d => d.topic));
+    toc.innerHTML = `<button class="all ${topic==='all'?'on':''}" data-t="all">📚 全部卡組（${CARD_DECKS.length}）</button>`
+      + CARD_TOPICS.filter(t => used.has(t)).map(t =>
+        `<button class="${topic===t?'on':''}" data-t="${t}">${t}</button>`).join('');
+    toc.querySelectorAll('button').forEach(b => b.onclick = () => { topic = b.dataset.t; renderToc(); renderList(); });
+  }
+
+  function renderList() {
+    const arr = CARD_DECKS.filter(d => topic === 'all' || d.topic === topic);
+    if (!arr.length) {
+      listEl.innerHTML = `<div class="empty"><div class="big">🃏</div><b>呢個單元仲未有卡組</b><br><small>遲下會新增</small></div>`;
+      return;
+    }
+    listEl.innerHTML = arr.map(d => `
+      <a class="deck-card" data-id="${d.id}">
+        <div class="ic">${d.emoji}</div>
+        <div><div class="t">${d.title}</div><div class="s">${d.topic}</div></div>
+        <div class="go">▶</div>
+      </a>`).join('');
+    listEl.querySelectorAll('.deck-card').forEach(c => c.addEventListener('click', () => loadDeck(c.dataset.id)));
   }
 
   async function loadDeck(id) {
     const deck = CARD_DECKS.find(d => d.id === id);
     if (!deck) return;
     currentDeck = id;
-    renderDecks();
+    renderToc();
 
     try {
       const res = await fetch('cards/' + deck.file);
       const csv = await res.text();
       const lines = csv.trim().split('\n').filter(l => l.trim());
       cards = lines.map(l => {
-        // split on first comma only (answers may contain commas)
         const idx = l.indexOf(',');
         return { q: l.slice(0, idx).trim(), a: l.slice(idx + 1).trim() };
       }).filter(c => c.q && c.a);
       totalCards = cards.length;
       correct = 0; wrong = 0; flipped = false; currentIdx = 0;
       shuffle(cards);
+      wrapEl.style.display = 'none';
+      gameEl.style.display = 'block';
       renderGame();
       showCard();
     } catch(e) {
-      gameEl.innerHTML = `<div class="empty"><div class="big">❌</div><b>載入失敗</b><br><small>${e.message}</small></div>`;
+      gameEl.innerHTML = `<a class="back-btn" onclick="backToList()">← 返回目錄</a><div class="empty"><div class="big">❌</div><b>載入失敗</b><br><small>${e.message}</small></div>`;
     }
+  }
+
+  function backToList() {
+    wrapEl.style.display = 'flex';
+    gameEl.style.display = 'none';
+    gameEl.innerHTML = '';
+    renderList();
   }
 
   function shuffle(arr) {
@@ -205,6 +250,7 @@
         <div class="w">❌ 錯誤 <div class="n" id="wrong">${wrong}</div></div>
         <div class="r">📊 答對率 <div class="n" id="rate">${correct+wrong > 0 ? Math.round(correct/(correct+wrong)*100) : 0}%</div></div>
       </div>
+      <a class="back-btn" onclick="backToList()" style="margin-bottom:14px">← 返回目錄</a>
       <div class="card-wrap" id="cardWrap">
         <div class="card-inner">
           <div class="card-face card-front">
@@ -224,7 +270,7 @@
         <button class="btn btn-next" id="btnNext">下一張 →</button>
       </div>
       <button class="btn btn-shuffle" id="btnShuffle">🔀 重新洗牌</button>
-      <button class="btn btn-hof" id="btnHof">🏆 Hall of Fame</button>
+      <button class="btn btn-hof" id="btnHof">🏆 排行榜</button>
     `;
     document.getElementById('btnCorrect').addEventListener('click', () => mark(true));
     document.getElementById('btnWrong').addEventListener('click', () => mark(false));
@@ -285,7 +331,7 @@
       const pct = total > 0 ? Math.round(correct/total*100) : 0;
       const deck = CARD_DECKS.find(d => d.id === currentDeck);
       const deckName = deck ? deck.title : currentDeck;
-      const name = prompt(`🎉 完成呢副牌！\n✅ 正確: ${correct}\n❌ 錯誤: ${wrong}\n📊 答對率: ${pct}%\n\n想上榜 Hall of Fame？輸入你嘅名（留空取消）：`);
+      const name = prompt(`🎉 完成呢副牌！\n✅ 正確: ${correct}\n❌ 錯誤: ${wrong}\n📊 答對率: ${pct}%\n\n想上榜？輸入你嘅名（留空取消）：`);
       if (name && name.trim()) {
         saveScore(name.trim().slice(0, 20), deckName, correct, total, pct);
       }
