@@ -91,7 +91,7 @@
   .btn-shuffle{margin-top:30px;background:var(--mustard);color:var(--ink);display:inline-block}
   .btn-hof{margin-top:30px;background:var(--violet);color:#fff;display:inline-block;margin-left:10px}
 
-  /* Hall of Fame panel */
+  /* 排行榜 panel */
   .hof{
     position:fixed;inset:0;background:rgba(23,20,13,.6);z-index:100;
     display:none;align-items:center;justify-content:center;padding:20px;
@@ -154,7 +154,7 @@
 </div>
 <div class="game" id="game" style="display:none"></div>
 
-<!-- Hall of Fame panel -->
+<!-- 排行榜 panel -->
 <div class="hof" id="hofPanel">
   <div class="hof-box">
     <h2>🏆 排行榜</h2>
@@ -344,7 +344,7 @@
     showCard();
   }
 
-  // ---- Hall of Fame (Google Apps Script + localStorage fallback) ----
+  // ---- 排行榜 (Google Apps Script + localStorage fallback) ----
   const API_URL = 'https://script.google.com/macros/s/AKfycbzuWmyWHb77WDuwVj8iUVKCTGtbJdsKYT_jvL-N-7wVkbnzE6TGRNIC4jW-admeTxBT/exec';
   const HOF_KEY = 'calfss_hof';
 
