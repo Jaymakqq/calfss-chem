@@ -213,7 +213,7 @@
       <p>微觀粒子動畫、3D 分子模型、虛擬實驗室 — 親手操作化學反應</p>
     </a>
     <a class="mod m-note" href="notes.html">
-      <span class="chip">📓</span><span class="count" id="cnt-note">陸續新增</span>
+      <span class="chip">📓</span><span class="count" id="cnt-note">—</span>
       <span class="corner"></span>
       <h3>溫習筆記</h3>
       <p>按 DSE 12 個課題分類，PDF + 精簡版筆記，考前必讀</p>
@@ -225,7 +225,7 @@
       <p>方程式配平挑戰、元素週期表配對 — 玩住學化學</p>
     </a>
     <a class="mod m-card" href="cards.html">
-      <span class="chip">🃏</span><span class="count">開發中</span>
+      <span class="chip">🃏</span><span class="count" id="cnt-card">—</span>
       <span class="corner"></span>
       <h3>Concept Cards</h3>
       <p>翻卡式溫習：前面問題、背面答案，自測概念記唔記得牢</p>
@@ -256,17 +256,43 @@
 
 <script src="sims.js"></script>
 <script src="games/games.js"></script>
+<script src="notes/notes.js"></script>
+<script src="cards/cards.js"></script>
 <script>
-  // 最新加入：取 sims.js 頭 4 個
-  const BG={chemistry:'#e3edff',physics:'#ffe3f1',biology:'#fff3d6',is:'#e6e3ff'};
-  document.getElementById('latest').innerHTML = SIMS.slice(0,4).map(s=>`
-    <a class="lat" href="sims/${s.id}/index.html" target="_blank">
-      <div class="ic" style="background:${BG[s.subject]}">${s.emoji}</div>
-      <div><div class="t">${s.title}</div><div class="s">${s.topic}</div></div>
-      <div class="go">→</div>
-    </a>`).join('');
-  document.getElementById('cnt-sim').textContent = SIMS.length + ' 個';
-  document.getElementById('cnt-game').textContent = GAMES.length + ' 個';
+  // ---- 最新加入：混合 sims / notes / games / cards，各取最新 ----
+  (function(){
+    const items = [];
+    // sims: take top 2
+    SIMS.slice(0,2).forEach(s => items.push({
+      emoji: s.emoji, bg: '#e3edff', title: s.title, sub: '互動模擬器 · ' + s.topic,
+      href: `sims/${s.id}/index.html`
+    }));
+    // notes: take top 2
+    NOTES.slice(0,2).forEach(n => items.push({
+      emoji: '📝', bg: '#e2f5ec', title: n.title, sub: '溫習筆記 · ' + n.topic,
+      href: n.type === 'pdf' ? `notes/${n.file}` : `notes/view.html?f=${encodeURIComponent(n.file)}`
+    }));
+    // games: take top 1
+    GAMES.slice(0,1).forEach(g => items.push({
+      emoji: g.emoji, bg: '#ffe8d6', title: g.title, sub: '化學小遊戲 · ' + g.topic,
+      href: `games/${g.id}/index.html`
+    }));
+    // concept cards: take top 1
+    CARD_DECKS.slice(0,1).forEach(c => items.push({
+      emoji: c.emoji, bg: '#e6e3ff', title: 'Concept Cards：' + c.title, sub: '翻卡溫習 · ' + c.topic,
+      href: 'cards.html'
+    }));
+    document.getElementById('latest').innerHTML = items.map(i => `
+      <a class="lat" href="${i.href}" target="_blank">
+        <div class="ic" style="background:${i.bg}">${i.emoji}</div>
+        <div><div class="t">${i.title}</div><div class="s">${i.sub}</div></div>
+        <div class="go">→</div>
+      </a>`).join('');
+    document.getElementById('cnt-sim').textContent = SIMS.length + ' 個';
+    document.getElementById('cnt-game').textContent = GAMES.length + ' 個';
+    document.getElementById('cnt-note').textContent = NOTES.length + ' 篇';
+    document.getElementById('cnt-card').textContent = CARD_DECKS.length + ' 副';
+  })();
 </script>
 </body>
 </html>
