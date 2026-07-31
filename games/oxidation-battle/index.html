@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HKDSE 化學｜氧化數魔法對戰 V3・教學優先版</title>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Noto Sans TC", "Helvetica Neue", Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        @keyframes monsterBob {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-8px) scale(1.03); }
+        }
+        .monster-anim {
+            animation: monsterBob 1.5s infinite ease-in-out;
+        }
+        @keyframes laserUp {
+            0% { opacity: 1; height: 0%; }
+            100% { opacity: 1; height: 100%; }
+        }
+        @keyframes laserDown {
+            0% { opacity: 1; height: 0%; }
+            100% { opacity: 1; height: 100%; }
+        }
+        .laser-beam-player {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            background: linear-gradient(to top, #38bdf8, #818cf8, #ffffff);
+            box-shadow: 0 0 20px #38bdf8, 0 0 40px #818cf8;
+            border-radius: 4px;
+            z-index: 30;
+        }
+        .laser-beam-monster {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            background: linear-gradient(to bottom, #ef4444, #f97316, #ffffff);
+            box-shadow: 0 0 20px #ef4444, 0 0 40px #f97316;
+            border-radius: 4px;
+            z-index: 30;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-8px, 5px); }
+            40% { transform: translate(8px, -5px); }
+            60% { transform: translate(-8px, -5px); }
+            80% { transform: translate(8px, 5px); }
+        }
+        .shake-effect {
+            animation: shake 0.35s ease-in-out;
+        }
+        .progress-bar-glow {
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+        }
+        .toast-float {
+            animation: floatUpFade 1.2s ease-out forwards;
+        }
+        @keyframes floatUpFade {
+            0% { opacity: 0; transform: translate(-50%, 20px); }
+            20% { opacity: 1; transform: translate(-50%, 0); }
+            80% { opacity: 1; transform: translate(-50%, -10px); }
+            100% { opacity: 0; transform: translate(-50%, -30px); }
+        }
+
+        button:focus-visible, input:focus-visible, select:focus-visible {
+            outline: 3px solid rgba(56, 189, 248, 0.8);
+            outline-offset: 3px;
+        }
+        button:disabled, input:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        .laser-beam-player {
+            height: 62%;
+            animation: laserFlash 0.24s ease-out forwards;
+        }
+        .laser-beam-monster {
+            height: 62%;
+            animation: laserFlash 0.24s ease-out forwards;
+        }
+        @keyframes laserFlash {
+            0% { opacity: 0; transform: translateX(-50%) scaleY(0); }
+            35% { opacity: 1; transform: translateX(-50%) scaleY(1); }
+            100% { opacity: 0; transform: translateX(-50%) scaleY(1); }
+        }
+        body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+    
+        :root { color-scheme: dark; }
+        .sr-only {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+        }
+        button, input, select { min-height: 44px; }
+        select:disabled { opacity: 1; cursor: not-allowed; }
+        .v3-topbar > div { min-width: 0; }
+        #hint-panel { line-height: 1.55; }
+        body.high-contrast { background: #000; color: #fff; }
+        body.high-contrast .glass-panel { background: #0b0f19; border-color: #fff; backdrop-filter: none; }
+        body.high-contrast .text-slate-400, body.high-contrast .text-slate-500 { color: #d1d5db !important; }
+        body.high-contrast button, body.high-contrast input, body.high-contrast select { border-color: #fff !important; }
+        body.high-contrast #monster-timer-bar { background: #fff; box-shadow: none; }
+        @media (max-width: 640px) {
+            body { padding: 0.5rem; }
+            .v3-topbar { display: grid !important; grid-template-columns: 1fr; }
+            .v3-topbar > div { width: 100%; justify-content: space-between; gap: 0.35rem; }
+            .v3-topbar .v3-identity { flex-wrap: wrap; }
+            .v3-topbar #header-player-name { max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            #game-container { height: 22rem; }
+            #formula-display { overflow-wrap: anywhere; text-align: center; }
+            #btn-rules, #btn-settings { padding-left: 0.55rem; padding-right: 0.55rem; }
+        }
+
+    </style>
+    <style id="compiled-utilities">*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | tailwindcss */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.inset-0{inset:0px}.-bottom-1{bottom:-0.25rem}.bottom-16{bottom:4rem}.left-0{left:0px}.left-1\/2{left:50%}.left-4{left:1rem}.right-0{right:0px}.top-1\/2{top:50%}.z-0{z-index:0}.z-10{z-index:10}.z-50{z-index:50}.z-\[60\]{z-index:60}.mx-auto{margin-left:auto;margin-right:auto}.my-4{margin-top:1rem;margin-bottom:1rem}.my-auto{margin-top:auto;margin-bottom:auto}.mb-0\.5{margin-bottom:0.125rem}.mb-1{margin-bottom:0.25rem}.mb-1\.5{margin-bottom:0.375rem}.mb-2{margin-bottom:0.5rem}.mb-3{margin-bottom:0.75rem}.mb-4{margin-bottom:1rem}.mb-5{margin-bottom:1.25rem}.mb-6{margin-bottom:1.5rem}.ml-1{margin-left:0.25rem}.ml-2{margin-left:0.5rem}.mr-1\.5{margin-right:0.375rem}.mr-2{margin-right:0.5rem}.mt-0\.5{margin-top:0.125rem}.mt-1{margin-top:0.25rem}.mt-2{margin-top:0.5rem}.mt-3{margin-top:0.75rem}.mt-5{margin-top:1.25rem}.block{display:block}.inline-block{display:inline-block}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-1{height:0.25rem}.h-16{height:4rem}.h-2{height:0.5rem}.h-2\.5{height:0.625rem}.h-3{height:0.75rem}.h-\[380px\]{height:380px}.h-full{height:100%}.max-h-52{max-height:13rem}.max-h-\[85vh\]{max-height:85vh}.max-h-\[92vh\]{max-height:92vh}.min-h-screen{min-height:100vh}.w-12{width:3rem}.w-64{width:16rem}.w-full{width:100%}.max-w-2xl{max-width:42rem}.max-w-4xl{max-width:56rem}.max-w-lg{max-width:32rem}.max-w-md{max-width:28rem}.max-w-xl{max-width:36rem}.flex-1{flex:1 1 0%}.-translate-x-1\/2{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\/2{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@keyframes pulse{50%{opacity:.5}}.animate-pulse{animation:pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite}@keyframes spin{to{transform:rotate(360deg)}}.animate-spin{animation:spin 1s linear infinite}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-end{align-items:flex-end}.items-center{align-items:center}.justify-start{justify-content:flex-start}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-1\.5{gap:0.375rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.space-x-1\.5 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.375rem * var(--tw-space-x-reverse));margin-left:calc(0.375rem * calc(1 - var(--tw-space-x-reverse)))}.space-x-3 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.75rem * var(--tw-space-x-reverse));margin-left:calc(0.75rem * calc(1 - var(--tw-space-x-reverse)))}.space-y-1\.5 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.375rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.375rem * var(--tw-space-y-reverse))}.space-y-2 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto}.rounded-2xl{border-radius:1rem}.rounded-3xl{border-radius:1.5rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.border{border-width:1px}.border-2{border-width:2px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-amber-500\/30{border-color:rgb(245 158 11 / 0.3)}.border-amber-500\/40{border-color:rgb(245 158 11 / 0.4)}.border-cyan-400{--tw-border-opacity:1;border-color:rgb(34 211 238 / var(--tw-border-opacity, 1))}.border-cyan-400\/80{border-color:rgb(34 211 238 / 0.8)}.border-cyan-500\/30{border-color:rgb(6 182 212 / 0.3)}.border-cyan-500\/40{border-color:rgb(6 182 212 / 0.4)}.border-emerald-500\/40{border-color:rgb(16 185 129 / 0.4)}.border-indigo-400\/30{border-color:rgb(129 140 248 / 0.3)}.border-indigo-500\/40{border-color:rgb(99 102 241 / 0.4)}.border-indigo-700\/50{border-color:rgb(67 56 202 / 0.5)}.border-indigo-700\/60{border-color:rgb(67 56 202 / 0.6)}.border-rose-500\/30{border-color:rgb(244 63 94 / 0.3)}.border-slate-500\/40{border-color:rgb(100 116 139 / 0.4)}.border-slate-600{--tw-border-opacity:1;border-color:rgb(71 85 105 / var(--tw-border-opacity, 1))}.border-slate-700{--tw-border-opacity:1;border-color:rgb(51 65 85 / var(--tw-border-opacity, 1))}.border-slate-700\/50{border-color:rgb(51 65 85 / 0.5)}.border-slate-800{--tw-border-opacity:1;border-color:rgb(30 41 59 / var(--tw-border-opacity, 1))}.border-slate-800\/80{border-color:rgb(30 41 59 / 0.8)}.bg-cyan-500{--tw-bg-opacity:1;background-color:rgb(6 182 212 / var(--tw-bg-opacity, 1))}.bg-cyan-500\/20{background-color:rgb(6 182 212 / 0.2)}.bg-emerald-500\/20{background-color:rgb(16 185 129 / 0.2)}.bg-indigo-600\/30{background-color:rgb(79 70 229 / 0.3)}.bg-indigo-600\/50{background-color:rgb(79 70 229 / 0.5)}.bg-indigo-900\/40{background-color:rgb(49 46 129 / 0.4)}.bg-indigo-950\/80{background-color:rgb(30 27 75 / 0.8)}.bg-rose-500{--tw-bg-opacity:1;background-color:rgb(244 63 94 / var(--tw-bg-opacity, 1))}.bg-slate-700{--tw-bg-opacity:1;background-color:rgb(51 65 85 / var(--tw-bg-opacity, 1))}.bg-slate-700\/80{background-color:rgb(51 65 85 / 0.8)}.bg-slate-800{--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.bg-slate-800\/80{background-color:rgb(30 41 59 / 0.8)}.bg-slate-900\/60{background-color:rgb(15 23 42 / 0.6)}.bg-slate-900\/80{background-color:rgb(15 23 42 / 0.8)}.bg-slate-900\/90{background-color:rgb(15 23 42 / 0.9)}.bg-slate-950{--tw-bg-opacity:1;background-color:rgb(2 6 23 / var(--tw-bg-opacity, 1))}.bg-slate-950\/80{background-color:rgb(2 6 23 / 0.8)}.bg-slate-950\/85{background-color:rgb(2 6 23 / 0.85)}.bg-slate-950\/90{background-color:rgb(2 6 23 / 0.9)}.bg-slate-950\/95{background-color:rgb(2 6 23 / 0.95)}.bg-\[radial-gradient\(\#1e293b_1px\2c transparent_1px\)\]{background-image:radial-gradient(#1e293b 1px,transparent 1px)}.bg-gradient-to-r{background-image:linear-gradient(to right, var(--tw-gradient-stops))}.from-cyan-400{--tw-gradient-from:#22d3ee var(--tw-gradient-from-position);--tw-gradient-to:rgb(34 211 238 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-cyan-500{--tw-gradient-from:#06b6d4 var(--tw-gradient-from-position);--tw-gradient-to:rgb(6 182 212 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-emerald-500{--tw-gradient-from:#10b981 var(--tw-gradient-from-position);--tw-gradient-to:rgb(16 185 129 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-rose-500{--tw-gradient-from:#f43f5e var(--tw-gradient-from-position);--tw-gradient-to:rgb(244 63 94 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-transparent{--tw-gradient-from:transparent var(--tw-gradient-from-position);--tw-gradient-to:rgb(0 0 0 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.via-indigo-300{--tw-gradient-to:rgb(165 180 252 / 0)  var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), #a5b4fc var(--tw-gradient-via-position), var(--tw-gradient-to)}.via-rose-500\/50{--tw-gradient-to:rgb(244 63 94 / 0)  var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), rgb(244 63 94 / 0.5) var(--tw-gradient-via-position), var(--tw-gradient-to)}.to-amber-300{--tw-gradient-to:#fcd34d var(--tw-gradient-to-position)}.to-amber-500{--tw-gradient-to:#f59e0b var(--tw-gradient-to-position)}.to-amber-600{--tw-gradient-to:#d97706 var(--tw-gradient-to-position)}.to-blue-600{--tw-gradient-to:#2563eb var(--tw-gradient-to-position)}.to-indigo-300{--tw-gradient-to:#a5b4fc var(--tw-gradient-to-position)}.to-indigo-600{--tw-gradient-to:#4f46e5 var(--tw-gradient-to-position)}.to-teal-600{--tw-gradient-to:#0d9488 var(--tw-gradient-to-position)}.to-transparent{--tw-gradient-to:transparent var(--tw-gradient-to-position)}.bg-clip-text{-webkit-background-clip:text;background-clip:text}.p-0\.5{padding:0.125rem}.p-2{padding:0.5rem}.p-2\.5{padding:0.625rem}.p-3{padding:0.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-2\.5{padding-left:0.625rem;padding-right:0.625rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-3\.5{padding-top:0.875rem;padding-bottom:0.875rem}.pb-3{padding-bottom:0.75rem}.pl-11{padding-left:2.75rem}.pr-4{padding-right:1rem}.pt-2{padding-top:0.5rem}.text-left{text-align:left}.text-center{text-align:center}.font-mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-5xl{font-size:3rem;line-height:1}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-\[9px\]{font-size:9px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-black{font-weight:900}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.font-normal{font-weight:400}.uppercase{text-transform:uppercase}.leading-none{line-height:1}.leading-tight{line-height:1.25}.tracking-wide{letter-spacing:0.025em}.tracking-wider{letter-spacing:0.05em}.tracking-widest{letter-spacing:0.1em}.text-amber-300{--tw-text-opacity:1;color:rgb(252 211 77 / var(--tw-text-opacity, 1))}.text-amber-300\/90{color:rgb(252 211 77 / 0.9)}.text-amber-400{--tw-text-opacity:1;color:rgb(251 191 36 / var(--tw-text-opacity, 1))}.text-cyan-300{--tw-text-opacity:1;color:rgb(103 232 249 / var(--tw-text-opacity, 1))}.text-cyan-400{--tw-text-opacity:1;color:rgb(34 211 238 / var(--tw-text-opacity, 1))}.text-emerald-300{--tw-text-opacity:1;color:rgb(110 231 183 / var(--tw-text-opacity, 1))}.text-indigo-300{--tw-text-opacity:1;color:rgb(165 180 252 / var(--tw-text-opacity, 1))}.text-rose-400{--tw-text-opacity:1;color:rgb(251 113 133 / var(--tw-text-opacity, 1))}.text-rose-500{--tw-text-opacity:1;color:rgb(244 63 94 / var(--tw-text-opacity, 1))}.text-slate-100{--tw-text-opacity:1;color:rgb(241 245 249 / var(--tw-text-opacity, 1))}.text-slate-200{--tw-text-opacity:1;color:rgb(226 232 240 / var(--tw-text-opacity, 1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225 / var(--tw-text-opacity, 1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-950{--tw-text-opacity:1;color:rgb(2 6 23 / var(--tw-text-opacity, 1))}.text-transparent{color:transparent}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.underline{-webkit-text-decoration-line:underline;text-decoration-line:underline}.placeholder-slate-500::placeholder{--tw-placeholder-opacity:1;color:rgb(100 116 139 / var(--tw-placeholder-opacity, 1))}.opacity-40{opacity:0.4}.opacity-90{opacity:0.9}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgb(0 0 0 / 0.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-\[0_0_20px_rgba\(56\2c 189\2c 248\2c 0\.3\)\]{--tw-shadow:0 0 20px rgba(56,189,248,0.3);--tw-shadow-colored:0 0 20px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-inner{--tw-shadow:inset 0 2px 4px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:inset 0 2px 4px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur-sm{--tw-blur:blur(4px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.drop-shadow-\[0_0_20px_rgba\(244\2c 63\2c 94\2c 0\.7\)\]{--tw-drop-shadow:drop-shadow(0 0 20px rgba(244,63,94,0.7));filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-blur-md{--tw-backdrop-blur:blur(12px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-200{transition-duration:200ms}.duration-300{transition-duration:300ms}.duration-75{transition-duration:75ms}.\[background-size\:16px_16px\]{background-size:16px 16px}.hover\:bg-cyan-400:hover{--tw-bg-opacity:1;background-color:rgb(34 211 238 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-600:hover{--tw-bg-opacity:1;background-color:rgb(71 85 105 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-700:hover{--tw-bg-opacity:1;background-color:rgb(51 65 85 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-700\/80:hover{background-color:rgb(51 65 85 / 0.8)}.hover\:from-cyan-400:hover{--tw-gradient-from:#22d3ee var(--tw-gradient-from-position);--tw-gradient-to:rgb(34 211 238 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.hover\:from-emerald-400:hover{--tw-gradient-from:#34d399 var(--tw-gradient-from-position);--tw-gradient-to:rgb(52 211 153 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.hover\:from-rose-400:hover{--tw-gradient-from:#fb7185 var(--tw-gradient-from-position);--tw-gradient-to:rgb(251 113 133 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.hover\:to-amber-500:hover{--tw-gradient-to:#f59e0b var(--tw-gradient-to-position)}.hover\:to-blue-500:hover{--tw-gradient-to:#3b82f6 var(--tw-gradient-to-position)}.hover\:to-indigo-500:hover{--tw-gradient-to:#6366f1 var(--tw-gradient-to-position)}.hover\:to-teal-500:hover{--tw-gradient-to:#14b8a6 var(--tw-gradient-to-position)}.hover\:text-rose-400:hover{--tw-text-opacity:1;color:rgb(251 113 133 / var(--tw-text-opacity, 1))}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.focus\:border-amber-400:focus{--tw-border-opacity:1;border-color:rgb(251 191 36 / var(--tw-border-opacity, 1))}.focus\:border-cyan-400:focus{--tw-border-opacity:1;border-color:rgb(34 211 238 / var(--tw-border-opacity, 1))}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.active\:scale-95:active{--tw-scale-x:.95;--tw-scale-y:.95;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@media (min-width: 640px){.sm\:h-\[420px\]{height:420px}.sm\:w-72{width:18rem}.sm\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.sm\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.sm\:gap-2{gap:0.5rem}.sm\:gap-3{gap:0.75rem}.sm\:space-x-6 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(1.5rem * var(--tw-space-x-reverse));margin-left:calc(1.5rem * calc(1 - var(--tw-space-x-reverse)))}.sm\:p-2\.5{padding:0.625rem}.sm\:p-4{padding:1rem}.sm\:p-6{padding:1.5rem}.sm\:px-4{padding-left:1rem;padding-right:1rem}.sm\:px-5{padding-left:1.25rem;padding-right:1.25rem}.sm\:py-2{padding-top:0.5rem;padding-bottom:0.5rem}.sm\:text-2xl{font-size:1.5rem;line-height:2rem}.sm\:text-3xl{font-size:1.875rem;line-height:2.25rem}.sm\:text-4xl{font-size:2.25rem;line-height:2.5rem}.sm\:text-5xl{font-size:3rem;line-height:1}.sm\:text-6xl{font-size:3.75rem;line-height:1}.sm\:text-\[11px\]{font-size:11px}.sm\:text-base{font-size:1rem;line-height:1.5rem}.sm\:text-lg{font-size:1.125rem;line-height:1.75rem}.sm\:text-sm{font-size:0.875rem;line-height:1.25rem}.sm\:text-xl{font-size:1.25rem;line-height:1.75rem}}</style>
+</head>
+<body class="min-h-screen flex flex-col justify-between items-center p-2 sm:p-4">
+    <div id="timer-live" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- 1. WELCOME & SETUP MODAL -->
+    <div id="screen-welcome" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md overflow-y-auto">
+        <div class="glass-panel w-full max-w-xl rounded-3xl p-6 border-2 border-cyan-500/30 shadow-2xl my-auto text-left">
+            <div class="text-center mb-6">
+                <div class="inline-block px-4 py-1.5 bg-indigo-600/30 border border-indigo-400/30 rounded-full text-indigo-300 text-xs font-bold mb-2 tracking-widest uppercase">
+                    HKDSE Chemistry Topic VII
+                </div>
+                <h1 class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-300 to-amber-300">
+                    🧪 氧化數魔法打怪大冒險
+                </h1>
+                <p class="text-slate-400 text-xs sm:text-sm mt-1">教學優先 V3｜循序練習、延後重練、學習診斷與離線課堂支援</p>
+            </div>
+
+            <!-- Player Name Input -->
+            <div class="mb-5">
+                <label class="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">輸入魔法師名稱：</label>
+                <div class="relative">
+                    <span aria-hidden="true">🧑‍🚀</span>
+                    <input type="text" id="player-name-input" value="化學大導師" maxlength="24" placeholder="請輸入你的名字"
+                        class="w-full bg-slate-900/90 text-slate-100 font-bold pl-11 pr-4 py-3 rounded-xl border border-slate-700 focus:border-cyan-400 focus:outline-none text-sm transition">
+                </div>
+            </div>
+
+            <!-- Character Selection -->
+            <div class="mb-5">
+                <label class="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-wider">選擇化學英雄：</label>
+                <div class="grid grid-cols-4 gap-2 sm:gap-3">
+                    <button class="char-opt-btn active bg-slate-800/80 hover:bg-slate-700/80 border-2 border-cyan-400 p-2.5 rounded-2xl flex flex-col items-center transition" data-avatar="🧙‍♂️" data-name="經典法師" data-time-ms="12000">
+                        <span class="text-3xl mb-1">🧙‍♂️</span>
+                        <span class="text-[11px] font-bold text-slate-200">法師</span>
+                        <span class="text-[10px] text-cyan-300">12 秒</span>
+                    </button>
+                    <button class="char-opt-btn bg-slate-800/80 hover:bg-slate-700/80 border-2 border-slate-700 p-2.5 rounded-2xl flex flex-col items-center transition" data-avatar="🧙‍♀️" data-name="元素魔導士" data-time-ms="15000">
+                        <span class="text-3xl mb-1">🧙‍♀️</span>
+                        <span class="text-[11px] font-bold text-slate-200">魔導士</span>
+                        <span class="text-[10px] text-cyan-300">15 秒</span>
+                    </button>
+                    <button class="char-opt-btn bg-slate-800/80 hover:bg-slate-700/80 border-2 border-slate-700 p-2.5 rounded-2xl flex flex-col items-center transition" data-avatar="🧑‍🔬" data-name="瘋狂化學家" data-time-ms="20000">
+                        <span class="text-3xl mb-1">🧑‍🔬</span>
+                        <span class="text-[11px] font-bold text-slate-200">化學家</span>
+                        <span class="text-[10px] text-cyan-300">20 秒</span>
+                    </button>
+                    <button class="char-opt-btn bg-slate-800/80 hover:bg-slate-700/80 border-2 border-slate-700 p-2.5 rounded-2xl flex flex-col items-center transition" data-avatar="🤖" data-name="AI煉金機甲" data-time-ms="9000">
+                        <span class="text-3xl mb-1">🤖</span>
+                        <span class="text-[11px] font-bold text-slate-200">機甲</span>
+                        <span class="text-[10px] text-cyan-300">9 秒</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Topic Category Filter -->
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-wider">選擇練習課題範圍：</label>
+                <select id="category-select" class="w-full bg-slate-900/90 text-cyan-300 font-bold p-3 rounded-xl border border-slate-700 focus:border-cyan-400 text-xs sm:text-sm">
+                    <option value="ALL">🌟 全範圍綜合抽題 (全 120 題)</option>
+                    <option value="SECTION_1">🟢 第一區：單質與單原子離子 (第 1–25 題)</option>
+                    <option value="SECTION_2">🔵 第二區：二元化合物與氧化物 (第 26–50 題)</option>
+                    <option value="SECTION_3">🟡 第三區：DSE 常考規則特例 (第 51–65 題)</option>
+                    <option value="SECTION_4">🟠 第四區：多原子離子與酸根 (第 66–90 題)</option>
+                    <option value="SECTION_5">🟣 第五區：錯合物與錯離子 (第 91–120 題)</option>
+                </select>
+            </div>
+
+
+            <div class="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label for="question-count-select" class="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-wider">練習長度：</label>
+                    <select id="question-count-select" class="w-full bg-slate-900/90 text-cyan-300 font-bold p-3 rounded-xl border border-slate-700 focus:border-cyan-400 text-xs sm:text-sm">
+                        <option value="10">10 題</option>
+                        <option value="20">20 題</option>
+                        <option value="RANGE" selected>整個所選分區</option>
+                        <option value="ALL120">全部 120 題</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="answer-time-select" class="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-wider">英雄專屬作答時間：</label>
+                    <select id="answer-time-select" disabled aria-describedby="hero-time-note" class="w-full bg-slate-900/90 text-amber-300 font-bold p-3 rounded-xl border border-slate-700 text-xs sm:text-sm">
+                        <option value="9000">🤖 AI 機甲：9 秒</option>
+                        <option value="12000" selected>🧙‍♂️ 法師：12 秒</option>
+                        <option value="15000">🧙‍♀️ 魔導士：15 秒</option>
+                        <option value="20000">🧑‍🔬 化學家：20 秒</option>
+                    </select>
+                    <p id="hero-time-note" class="text-[10px] text-slate-500 mt-1">作答時間由所選英雄自動決定。</p>
+                </div>
+            </div>
+            <div class="mb-5 bg-slate-900/60 rounded-xl border border-slate-700 p-3 text-xs text-slate-400">
+                教學關按題號循序進行，錯題會在三題後重現；生命值歸零仍可完成練習。挑戰關隨機出題並保留五點生命。
+            </div>
+
+            <!-- Game Mode Selection Buttons -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <button id="btn-start-tutorial" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black py-3.5 px-4 rounded-xl shadow-lg transition active:scale-95 flex flex-col items-center">
+                    <span class="text-base"> 📚 教學關</span>
+                    <span class="text-[10px] opacity-90 font-normal">適合學習：顯示詳細答題規則與解析</span>
+                </button>
+                <button id="btn-start-challenge" class="bg-gradient-to-r from-rose-500 to-amber-600 hover:from-rose-400 hover:to-amber-500 text-white font-black py-3.5 px-4 rounded-xl shadow-lg transition active:scale-95 flex flex-col items-center">
+                    <span class="text-base"> 🔥 挑戰關</span>
+                    <span class="text-[10px] opacity-90 font-normal">極速競技：無彈窗連擊流暢搶答</span>
+                </button>
+            </div>
+
+            <button id="btn-show-leaderboard" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                <span aria-hidden="true">🏆</span> 查看即時龍虎榜
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. TOP STATUS BAR -->
+    <header class="v3-topbar w-full max-w-4xl glass-panel rounded-2xl p-3 sm:p-4 mb-3 flex flex-wrap justify-between items-center gap-2 border-b border-cyan-500/30">
+        <div class="v3-identity flex items-center space-x-3">
+            <button id="btn-back-home" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-2.5 py-1.5 rounded-lg border border-slate-600 transition" title="返回主選單">
+                <span aria-hidden="true">🏠</span>
+            </button>
+            <div class="bg-indigo-600/50 p-2 sm:p-2.5 rounded-xl border border-indigo-400/30 flex items-center">
+                <span id="header-avatar" class="text-lg mr-2">🧙‍♂️</span>
+                <span id="header-player-name" class="font-extrabold text-sm sm:text-base text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-300">化學大導師</span>
+                <span id="mode-badge" class="ml-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full">📚 教學關</span>
+            </div>
+            <button id="btn-rules" class="bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2 rounded-xl transition flex items-center border border-slate-500/40">
+                <span aria-hidden="true">📖</span>規則手冊
+            </button>
+
+            <button id="btn-settings" type="button" class="bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2 rounded-xl transition border border-slate-500/40" aria-haspopup="dialog">⚙️ 設定</button>
+
+        </div>
+
+        <div class="flex items-center space-x-3 sm:space-x-6">
+            <!-- Player HP -->
+            <div class="flex items-center space-x-1.5 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-rose-500/30">
+                <span aria-hidden="true">❤️</span>
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-slate-400 font-bold uppercase leading-none">HP</span>
+                    <span id="player-hp-text" class="font-black text-base sm:text-lg text-rose-400 leading-tight">5 / 5</span>
+                </div>
+            </div>
+
+            <!-- Score -->
+            <div class="flex flex-col items-end">
+                <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Score</span>
+                <span id="score-display" class="font-black text-xl sm:text-2xl text-amber-400">0000</span>
+            </div>
+            
+            <!-- Combo -->
+            <div class="flex flex-col items-end">
+                <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Combo</span>
+                <span id="combo-display" class="font-black text-lg sm:text-xl text-cyan-400">0x</span>
+            </div>
+
+            <div class="flex flex-col items-end">
+                <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Progress</span>
+                <span id="question-progress-display" class="font-black text-lg sm:text-xl text-indigo-300">0 / 120</span>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- 3. GAME BATTLE ARENA -->
+    <main id="game-container" class="relative w-full max-w-4xl h-[380px] sm:h-[420px] bg-slate-950/90 rounded-3xl overflow-hidden border-2 border-slate-700/50 shadow-2xl flex flex-col justify-between p-4">
+        
+        <div class="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
+        <div class="absolute bottom-16 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-rose-500/50 to-transparent z-0"></div>
+
+        <div class="relative z-10 flex justify-between items-center text-xs text-slate-400 font-mono">
+            <span id="wave-title" class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 text-cyan-300 font-bold">STAGE 1</span>
+            <span id="target-hint" class="bg-indigo-900/40 text-indigo-300 px-3 py-1 rounded-full border border-indigo-700/50">⚡ 警告：怪物蓄力攻擊中！</span>
+        </div>
+
+        <!-- Monster Zone -->
+        <div id="monster-layer" class="relative w-full flex-1 flex flex-col justify-start items-center pt-2 z-10">
+            <div id="active-monster" class="monster-anim relative flex flex-col items-center">
+                
+                <div class="w-64 sm:w-72 bg-slate-900/90 p-2 rounded-xl border border-slate-700 shadow-md mb-2 flex flex-col gap-1">
+                    <div class="flex justify-between items-center text-xs font-bold">
+                        <span id="monster-name" class="text-rose-400">氧化怪</span>
+                        <span class="text-slate-300">HP: <span id="monster-hp-text">2/2</span></span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                        <div id="monster-hp-bar" class="bg-gradient-to-r from-rose-500 to-amber-500 h-full rounded-full transition-all duration-300" style="width: 100%;"></div>
+                    </div>
+                    
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <span aria-hidden="true">⏱️</span>
+                        <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                            <div id="monster-timer-bar" class="bg-rose-500 h-full rounded-full progress-bar-glow transition-all duration-75" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative mb-2">
+                    <div id="monster-avatar" class="text-5xl sm:text-6xl filter drop-shadow-[0_0_20px_rgba(244,63,94,0.7)] transition-transform duration-200">👾</div>
+                </div>
+
+                <!-- Chemical Formula Tag -->
+                <div class="glass-panel px-5 py-2 rounded-2xl border-2 border-cyan-400/80 shadow-[0_0_20px_rgba(56,189,248,0.3)] flex flex-col items-center max-w-md">
+                    <div class="text-[10px] sm:text-[11px] text-slate-400 font-bold mb-0.5">計算黃字/底線元素的氧化數：</div>
+                    <div id="formula-display" class="text-xl sm:text-2xl font-black tracking-wide text-white">
+                        <!-- e.g. [Co(H2O)4Cl2]+ -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Character at Bottom -->
+        <div class="relative z-10 flex justify-center items-end h-16">
+            <div id="wizard" class="relative text-4xl sm:text-5xl transition-transform duration-200">
+                🧙‍♂️
+                <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-3 bg-cyan-500/20 rounded-full blur-sm"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 4. CONTROL DECK & INPUT SECTION -->
+    <section class="w-full max-w-4xl glass-panel rounded-2xl p-3 sm:p-4 mt-3 border-t border-slate-700">
+        <div class="flex gap-2 max-w-lg mx-auto mb-3">
+            <div class="relative flex-1">
+                <input type="text" id="ans-input" placeholder="輸入氧化數 (例: +3, -1, 0)" 
+                    class="w-full bg-slate-900/90 text-center font-black text-xl text-cyan-300 placeholder-slate-500 px-4 py-3 rounded-xl border-2 border-slate-600 focus:border-cyan-400 focus:outline-none transition shadow-inner"
+                    autocomplete="off">
+            </div>
+            <button id="btn-shoot" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-base sm:text-lg px-5 py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center gap-2">
+                <span aria-hidden="true">✨</span> 攻擊
+            </button>
+        </div>
+
+        <div class="max-w-lg mx-auto mb-3">
+            <button id="btn-hint" type="button" class="w-full bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-200 font-bold px-4 py-2 rounded-xl border border-indigo-400/40 transition">💡 顯示規則提示（不顯示答案）</button>
+            <div id="hint-panel" role="status" class="hidden mt-2 bg-indigo-950/80 text-indigo-100 text-sm px-4 py-3 rounded-xl border border-indigo-500/40"></div>
+        </div>
+
+        <!-- Touch Friendly Numpad -->
+        <div class="flex flex-wrap justify-center gap-1.5 sm:gap-2 max-w-2xl mx-auto">
+            <span class="text-[11px] text-slate-400 w-full text-center mb-1 font-bold">點擊快速選擇（適用於觸控螢幕）：</span>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">-3</button>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">-2</button>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">-1</button>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-amber-400 font-black px-4 py-1.5 sm:px-5 sm:py-2 rounded-lg border border-amber-500/40 text-base transition">0</button>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">+1</button>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">+2</button>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">+3</button>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">+4</button>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">+5</button>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">+6</button>
+            <button class="num-btn bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">+7</button>
+        </div>
+    </section>
+
+    <!-- 5. EXPLANATION FEEDBACK MODAL (TUTORIAL MODE) -->
+    <div id="modal-feedback" role="dialog" aria-modal="true" aria-labelledby="fb-title" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg rounded-3xl p-6 border-2 border-slate-600 shadow-2xl relative text-left">
+            <div id="fb-header-badge" class="inline-block px-3 py-1 rounded-full text-xs font-black mb-3"></div>
+            <h3 id="fb-title" class="text-2xl font-black mb-2 text-white"></h3>
+            
+            <div class="bg-slate-900/80 rounded-2xl p-4 my-4 border border-slate-800 space-y-2 text-sm">
+                <div class="text-slate-400">對應規則：<span id="fb-rule-tag" class="text-cyan-400 font-bold"></span></div>
+                <div id="fb-calc-steps" class="text-slate-200 font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800/80"></div>
+                <div class="text-amber-300/90 text-xs mt-2 pt-2 border-t border-slate-800 flex items-start gap-1.5">
+                    <span aria-hidden="true">💡</span>
+                    <span id="fb-dse-tip"></span>
+                </div>
+            </div>
+
+            <button id="btn-next-wave" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-lg py-3 rounded-xl shadow-lg transition">
+                繼續對戰 <span aria-hidden="true">▶</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 6. RULES REFERENCE MODAL -->
+    <div id="modal-rules" role="dialog" aria-modal="true" aria-labelledby="rules-title" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl p-6 border-2 border-cyan-500/40 shadow-2xl relative text-left">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+                <h3 id="rules-title" class="text-xl font-black text-cyan-300 flex items-center gap-2">
+                    <span aria-hidden="true">📘</span> 氧化數規則（HKDSE 課本指引）
+                </h3>
+                <button id="btn-close-rules" aria-label="關閉規則手冊" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            
+            <div class="space-y-3 text-sm">
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <div class="font-bold text-amber-400 mb-1">A. 元素狀態（單質）</div>
+                    <p class="text-slate-300">自由單質分子中，原子的氧化數為零。</p>
+                    <span class="text-xs text-cyan-400 font-mono">例子：S₈, O₂, P₄ 中原子均為 0</span>
+                </div>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <div class="font-bold text-amber-400 mb-1">B. 單原子離子</div>
+                    <p class="text-slate-300">單原子離子的氧化數等於其電荷數。</p>
+                    <span class="text-xs text-cyan-400 font-mono">例子：Na⁺ = +1, Cl⁻ = -1, Fe³⁺ = +3</span>
+                </div>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <div class="font-bold text-amber-400 mb-1">C. 鹼金屬與鹼土金屬</div>
+                    <p class="text-slate-300">化合物中第 I 族金屬為 +1，第 II 族金屬為 +2。</p>
+                </div>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <div class="font-bold text-amber-400 mb-1">D. 氟（F）</div>
+                    <p class="text-slate-300">化合物中 F 的氧化數必為 -1。</p>
+                </div>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <div class="font-bold text-amber-400 mb-1">E. 氫（H）與氧（O）</div>
+                    <p class="text-slate-300">大部分化合物中 H 為 +1，O 為 -2。</p>
+                    <div class="text-xs text-rose-400 mt-1 font-bold">⚠️ 特例：金屬氫化物 (NaH) 中 H 為 -1；過氧化物 (H₂O₂) 中 O 為 -1。</div>
+                </div>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <div class="font-bold text-amber-400 mb-1">F／G. 化合物與多原子離子</div>
+                    <p class="text-slate-300">中性化合物中各原子的氧化數總和為 0；多原子離子中各原子的氧化數總和等於離子電荷。</p>
+                </div>
+                <div class="bg-indigo-950/80 p-3 rounded-xl border border-indigo-700/60">
+                    <div class="font-bold text-indigo-300 mb-1">🟣 錯合物與錯離子觀念</div>
+                    <p class="text-slate-300">中性配體（電荷 0）：H₂O = 0、NH₃ = 0、CO = 0</p>
+                    <p class="text-slate-300">陰離子配體：Cl⁻ = -1、OH⁻ = -1、CN⁻ = -1、SCN⁻ = -1、C₂O₄²⁻ = -2</p>
+                    <span class="text-xs text-cyan-300 font-mono">例子：[Co(H₂O)₄Cl₂]⁺ → x + 4(0) + 2(-1) = +1 → x = +3</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. LEADERBOARD MODAL -->
+    <div id="modal-leaderboard" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg rounded-3xl p-6 border-2 border-amber-500/40 shadow-2xl relative text-left">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+                <h3 id="leaderboard-title" class="text-xl font-black text-amber-300 flex items-center gap-2">
+                    <span aria-hidden="true">🏆</span> 即時龍虎榜（相同設定 Top 20）
+                </h3>
+                <button id="btn-close-leaderboard" aria-label="關閉學習紀錄" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+
+            <div id="leaderboard-list" class="space-y-2 mb-4">
+                <!-- Leaderboard Rows Inserted via JS -->
+            </div>
+
+            <button id="btn-clear-lb" class="text-xs text-slate-500 hover:text-rose-400 underline w-full text-center">
+                清除本機學習紀錄
+            </button>
+        </div>
+    </div>
+
+
+    <!-- 8. RESULTS & LEARNING DIAGNOSIS MODAL -->
+    <div id="modal-results" role="dialog" aria-modal="true" aria-labelledby="result-title" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-3xl p-5 sm:p-6 border-2 border-indigo-500/40 shadow-2xl text-left">
+            <div class="text-center mb-4">
+                <div id="result-icon" class="text-5xl mb-2">🏆</div>
+                <h3 id="result-title" class="text-2xl sm:text-3xl font-black text-white">學習任務完成！</h3>
+                <p id="result-reason" class="text-sm text-slate-400 mt-1"></p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+                <div class="bg-slate-900/80 rounded-xl p-3 text-center border border-slate-800"><div class="text-[10px] text-slate-500 font-bold uppercase">Score</div><div id="result-score" class="text-xl font-black text-amber-300">0</div></div>
+                <div class="bg-slate-900/80 rounded-xl p-3 text-center border border-slate-800"><div class="text-[10px] text-slate-500 font-bold">首次正確率</div><div id="result-first-accuracy" class="text-xl font-black text-emerald-300">0%</div></div>
+                <div class="bg-slate-900/80 rounded-xl p-3 text-center border border-slate-800"><div class="text-[10px] text-slate-500 font-bold">重練後掌握</div><div id="result-review-mastery" class="text-xl font-black text-cyan-300">0%</div></div>
+                <div class="bg-slate-900/80 rounded-xl p-3 text-center border border-slate-800"><div class="text-[10px] text-slate-500 font-bold">首次平均時間</div><div id="result-average-time" class="text-xl font-black text-indigo-300">0.0秒</div></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <section><h4 class="text-sm font-black text-cyan-300 mb-2">📊 核心能力（較弱項目優先）</h4><div id="result-rule-stats" class="space-y-1.5"></div></section>
+                <section><h4 class="text-sm font-black text-amber-300 mb-2">📝 尚未掌握題目</h4><div id="result-mistakes" class="space-y-1.5 max-h-52 overflow-y-auto"></div></section>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-5">
+                <button id="btn-review-wrong" class="bg-amber-600 hover:bg-amber-500 text-white font-black py-3 rounded-xl transition">只重練錯題</button>
+                <button id="btn-review-weak" class="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 rounded-xl transition">重練較弱規則</button>
+                <button id="btn-export-csv" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl transition">匯出 CSV</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <button id="btn-results-home" class="bg-slate-700 hover:bg-slate-600 text-white font-black py-3 rounded-xl transition">返回主選單</button>
+                <button id="btn-results-retry" class="bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-black py-3 rounded-xl transition">以相同設定再練</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 border-2 border-cyan-500/40 shadow-2xl text-left">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+                <h3 id="settings-title" class="text-xl font-black text-cyan-300">⚙️ 顯示與音效設定</h3>
+                <button id="btn-close-settings" aria-label="關閉設定" class="text-slate-300 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div class="grid gap-3">
+                <button id="setting-sound" type="button" aria-pressed="true" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-left font-bold">🔊 音效：開</button>
+                <button id="setting-motion" type="button" aria-pressed="false" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-left font-bold">✨ 減少動畫：關</button>
+                <button id="setting-contrast" type="button" aria-pressed="false" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-left font-bold">◑ 高對比：關</button>
+            </div>
+            <p class="text-xs text-slate-400 mt-4">所有設定及學習紀錄只儲存在這部裝置，不會上載學生資料。</p>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio API Sound Synthesizer
+        class SoundFX {
+            constructor() { this.ctx = null; this.enabled = true; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            playShoot() { if (!this.enabled) return;
+                this.init(); if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.15);
+            }
+            playMonsterAttack() { if (!this.enabled) return;
+                this.init(); if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.3);
+            }
+            playHit() { if (!this.enabled) return;
+                this.init(); if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(700, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+            }
+        }
+        const sfx = new SoundFX();
+
+
+        // Built from questions.json; do not edit the generated array here.
+        const QUESTION_DATABASE = [{"id":1,"sectionId":"SECTION_1","species":"S8","target":"S","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"自由單質分子中，原子的氧化數一律為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span><sub>8</sub> 中的 S"},{"id":2,"sectionId":"SECTION_1","species":"O2","target":"O","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"氧氣單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>2</sub> 中的 O"},{"id":3,"sectionId":"SECTION_1","species":"O3 (臭氧)","target":"O","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"同素異形體單質分子氧化數均為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>3</sub> <span class='text-sm text-slate-400 font-bold'>（臭氧）</span> 中的 O"},{"id":4,"sectionId":"SECTION_1","species":"P4 (白磷)","target":"P","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"白磷單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>P</span><sub>4</sub> <span class='text-sm text-slate-400 font-bold'>（白磷）</span> 中的 P"},{"id":5,"sectionId":"SECTION_1","species":"C60 (富勒烯)","target":"C","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"碳同素異形體單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>C</span><sub>60</sub> <span class='text-sm text-slate-400 font-bold'>（富勒烯）</span> 中的 C"},{"id":6,"sectionId":"SECTION_1","species":"N2","target":"N","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"氮氣單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span><sub>2</sub> 中的 N"},{"id":7,"sectionId":"SECTION_1","species":"Cl2","target":"Cl","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"氯氣單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span><sub>2</sub> 中的 Cl"},{"id":8,"sectionId":"SECTION_1","species":"Br2","target":"Br","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"溴單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Br</span><sub>2</sub> 中的 Br"},{"id":9,"sectionId":"SECTION_1","species":"I2","target":"I","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"碘單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>I</span><sub>2</sub> 中的 I"},{"id":10,"sectionId":"SECTION_1","species":"H2","target":"H","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"氫氣單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>H</span><sub>2</sub> 中的 H"},{"id":11,"sectionId":"SECTION_1","species":"Fe3+","target":"Fe","answer":"+3","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"單原子離子氧化數等於其電荷數 (+3)。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span><sup>3+</sup> 中的 Fe"},{"id":12,"sectionId":"SECTION_1","species":"Fe2+","target":"Fe","answer":"+2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"單原子離子氧化數等於其電荷數 (+2)。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span><sup>2+</sup> 中的 Fe"},{"id":13,"sectionId":"SECTION_1","species":"Cu2+","target":"Cu","answer":"+2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"單原子離子氧化數等於其電荷數 (+2)。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span><sup>2+</sup> 中的 Cu"},{"id":14,"sectionId":"SECTION_1","species":"Cu+","target":"Cu","answer":"+1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"單原子離子氧化數等於其電荷數 (+1)。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span><sup>+</sup> 中的 Cu"},{"id":15,"sectionId":"SECTION_1","species":"Na+","target":"Na","answer":"+1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"鹼金屬單原子離子氧化數為 +1。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Na</span><sup>+</sup> 中的 Na"},{"id":16,"sectionId":"SECTION_1","species":"Mg2+","target":"Mg","answer":"+2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"鹼土金屬單原子離子氧化數為 +2。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mg</span><sup>2+</sup> 中的 Mg"},{"id":17,"sectionId":"SECTION_1","species":"Al3+","target":"Al","answer":"+3","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"鋁單原子離子氧化數為 +3。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Al</span><sup>3+</sup> 中的 Al"},{"id":18,"sectionId":"SECTION_1","species":"Cl-","target":"Cl","answer":"-1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"氯離子氧化數為 -1。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span><sup>-</sup> 中的 Cl"},{"id":19,"sectionId":"SECTION_1","species":"Br-","target":"Br","answer":"-1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"溴離子氧化數為 -1。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Br</span><sup>-</sup> 中的 Br"},{"id":20,"sectionId":"SECTION_1","species":"I-","target":"I","answer":"-1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"碘離子氧化數為 -1。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>I</span><sup>-</sup> 中的 I"},{"id":21,"sectionId":"SECTION_1","species":"S2-","target":"S","answer":"-2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"硫化物離子氧化數為 -2。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span><sup>2-</sup> 中的 S"},{"id":22,"sectionId":"SECTION_1","species":"N3-","target":"N","answer":"-3","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"氮化物離子氧化數為 -3。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span><sup>3-</sup> 中的 N"},{"id":23,"sectionId":"SECTION_1","species":"Zn2+","target":"Zn","answer":"+2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"鋅離子氧化數為 +2。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Zn</span><sup>2+</sup> 中的 Zn"},{"id":24,"sectionId":"SECTION_1","species":"Ag+","target":"Ag","answer":"+1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"銀離子氧化數為 +1。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ag</span><sup>+</sup> 中的 Ag"},{"id":25,"sectionId":"SECTION_1","species":"Pb2+","target":"Pb","answer":"+2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"鉛(II)離子氧化數為 +2。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Pb</span><sup>2+</sup> 中的 Pb"},{"id":26,"sectionId":"SECTION_2","species":"MgCl2","target":"Mg","answer":"+2","ruleId":"RULE_C_GROUP_METAL","skillId":"GROUP_II_METAL","ruleLabel":"Rule C（第II族金屬）","explanation":"化合物中 第 II 族金屬必為 +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mg</span>Cl<sub>2</sub> 中的 Mg"},{"id":27,"sectionId":"SECTION_2","species":"Al2O3","target":"Al","answer":"+3","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2x + 3(-2) = 0 → 2x = +6 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Al</span><sub>2</sub>O<sub>3</sub> 中的 Al"},{"id":28,"sectionId":"SECTION_2","species":"Fe2O3","target":"Fe","answer":"+3","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2x + 3(-2) = 0 → 2x = +6 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span><sub>2</sub>O<sub>3</sub> 中的 Fe"},{"id":29,"sectionId":"SECTION_2","species":"FeO","target":"Fe","answer":"+2","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + (-2) = 0 → x = +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>O 中的 Fe"},{"id":30,"sectionId":"SECTION_2","species":"SF6","target":"S","answer":"+6","ruleId":"RULE_D_FLUORINE","skillId":"FLUORINE_MINUS_ONE","ruleLabel":"Rule D（氟為 -1）","explanation":"F 必為 -1 → x + 6(-1) = 0 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>F<sub>6</sub> 中的 S"},{"id":31,"sectionId":"SECTION_2","species":"PCl3","target":"P","answer":"+3","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 3(-1) = 0 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>P</span>Cl<sub>3</sub> 中的 P"},{"id":32,"sectionId":"SECTION_2","species":"PCl5","target":"P","answer":"+5","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 5(-1) = 0 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>P</span>Cl<sub>5</sub> 中的 P"},{"id":33,"sectionId":"SECTION_2","species":"SO2","target":"S","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 2(-2) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>2</sub> 中的 S"},{"id":34,"sectionId":"SECTION_2","species":"SO3","target":"S","answer":"+6","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 3(-2) = 0 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>3</sub> 中的 S"},{"id":35,"sectionId":"SECTION_2","species":"H2S","target":"S","answer":"-2","ruleId":"RULE_E_HYDROGEN","skillId":"HYDROGEN_PLUS_ONE","ruleLabel":"Rule E（氫通常為 +1）","explanation":"2(+1) + x = 0 → x = -2。","difficulty":2,"formula":"H<sub>2</sub><span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span> 中的 S"},{"id":36,"sectionId":"SECTION_2","species":"NO","target":"N","answer":"+2","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + (-2) = 0 → x = +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>O 中的 N"},{"id":37,"sectionId":"SECTION_2","species":"NO2","target":"N","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 2(-2) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>O<sub>2</sub> 中的 N"},{"id":38,"sectionId":"SECTION_2","species":"N2O","target":"N","answer":"+1","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"N 的平均氧化數：2x + (-2) = 0 → 2x = +2 → x = +1。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span><sub>2</sub>O 中的 N"},{"id":39,"sectionId":"SECTION_2","species":"N2O5","target":"N","answer":"+5","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2x + 5(-2) = 0 → 2x = +10 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span><sub>2</sub>O<sub>5</sub> 中的 N"},{"id":40,"sectionId":"SECTION_2","species":"NH3","target":"N","answer":"-3","ruleId":"RULE_E_HYDROGEN","skillId":"HYDROGEN_PLUS_ONE","ruleLabel":"Rule E（氫通常為 +1）","explanation":"x + 3(+1) = 0 → x = -3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>H<sub>3</sub> 中的 N"},{"id":41,"sectionId":"SECTION_2","species":"CO","target":"C","answer":"+2","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + (-2) = 0 → x = +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>C</span>O 中的 C"},{"id":42,"sectionId":"SECTION_2","species":"CO2","target":"C","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 2(-2) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>C</span>O<sub>2</sub> 中的 C"},{"id":43,"sectionId":"SECTION_2","species":"Cu2O","target":"Cu","answer":"+1","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2x + (-2) = 0 → 2x = +2 → x = +1。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span><sub>2</sub>O 中的 Cu"},{"id":44,"sectionId":"SECTION_2","species":"CuO","target":"Cu","answer":"+2","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + (-2) = 0 → x = +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span>O 中的 Cu"},{"id":45,"sectionId":"SECTION_2","species":"PbO2","target":"Pb","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 2(-2) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Pb</span>O<sub>2</sub> 中的 Pb"},{"id":46,"sectionId":"SECTION_2","species":"MnO2","target":"Mn","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 2(-2) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mn</span>O<sub>2</sub> 中的 Mn"},{"id":47,"sectionId":"SECTION_2","species":"TiCl4","target":"Ti","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 4(-1) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ti</span>Cl<sub>4</sub> 中的 Ti"},{"id":48,"sectionId":"SECTION_2","species":"Ag2O","target":"Ag","answer":"+1","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2x + (-2) = 0 → 2x = +2 → x = +1。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ag</span><sub>2</sub>O 中的 Ag"},{"id":49,"sectionId":"SECTION_2","species":"ZnS","target":"Zn","answer":"+2","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"S 為 -2 → x + (-2) = 0 → x = +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Zn</span>S 中的 Zn"},{"id":50,"sectionId":"SECTION_2","species":"ICl3","target":"I","answer":"+3","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"Cl 為 -1 → x + 3(-1) = 0 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>I</span>Cl<sub>3</sub> 中的 I"},{"id":51,"sectionId":"SECTION_3","species":"H2O2","target":"O","answer":"-1","ruleId":"RULE_E_PEROXIDE","skillId":"PEROXIDE_OXYGEN","ruleLabel":"Rule E（過氧化物特例）","explanation":"過氧化物中 O 的氧化數是 -1 而非 -2。","difficulty":3,"formula":"H<sub>2</sub><span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>2</sub> 中的 O"},{"id":52,"sectionId":"SECTION_3","species":"Na2O2","target":"O","answer":"-1","ruleId":"RULE_E_PEROXIDE","skillId":"PEROXIDE_OXYGEN","ruleLabel":"Rule E（過氧化物特例）","explanation":"過氧化鈉中 O 的氧化數為 -1。","difficulty":3,"formula":"Na<sub>2</sub><span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>2</sub> 中的 O"},{"id":53,"sectionId":"SECTION_3","species":"BaO2","target":"O","answer":"-1","ruleId":"RULE_E_PEROXIDE","skillId":"PEROXIDE_OXYGEN","ruleLabel":"Rule E（過氧化物特例）","explanation":"過氧化鋇中 O 的氧化數為 -1。","difficulty":3,"formula":"Ba<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>2</sub> 中的 O"},{"id":54,"sectionId":"SECTION_3","species":"NaH","target":"H","answer":"-1","ruleId":"RULE_E_METAL_HYDRIDE","skillId":"METAL_HYDRIDE","ruleLabel":"Rule E（金屬氫化物特例）","explanation":"與活潑金屬結合時，H 氧化數轉為 -1。","difficulty":3,"formula":"Na<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>H</span> 中的 H"},{"id":55,"sectionId":"SECTION_3","species":"KH","target":"H","answer":"-1","ruleId":"RULE_E_METAL_HYDRIDE","skillId":"METAL_HYDRIDE","ruleLabel":"Rule E（金屬氫化物特例）","explanation":"氫化鉀中 H 氧化數為 -1。","difficulty":3,"formula":"K<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>H</span> 中的 H"},{"id":56,"sectionId":"SECTION_3","species":"CaH2","target":"H","answer":"-1","ruleId":"RULE_E_METAL_HYDRIDE","skillId":"METAL_HYDRIDE","ruleLabel":"Rule E（金屬氫化物特例）","explanation":"氫化鈣中 H 氧化數為 -1。","difficulty":3,"formula":"Ca<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>H</span><sub>2</sub> 中的 H"},{"id":57,"sectionId":"SECTION_3","species":"LiH","target":"H","answer":"-1","ruleId":"RULE_E_METAL_HYDRIDE","skillId":"METAL_HYDRIDE","ruleLabel":"Rule E（金屬氫化物特例）","explanation":"氫化鋰中 H 氧化數為 -1。","difficulty":3,"formula":"Li<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>H</span> 中的 H"},{"id":58,"sectionId":"SECTION_3","species":"LiAlH4","target":"Al","answer":"+3","ruleId":"RULE_E_COMPLEX_HYDRIDE","skillId":"COMPLEX_HYDRIDE","ruleLabel":"Rule E（複合氫化物）","explanation":"Li(+1) + Al(x) + 4(-1) = 0 → x = +3。","difficulty":3,"formula":"Li<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Al</span>H<sub>4</sub> 中的 Al"},{"id":59,"sectionId":"SECTION_3","species":"NaBH4","target":"B","answer":"+3","ruleId":"RULE_E_COMPLEX_HYDRIDE","skillId":"COMPLEX_HYDRIDE","ruleLabel":"Rule E（複合氫化物）","explanation":"Na(+1) + B(x) + 4(-1) = 0 → x = +3。","difficulty":3,"formula":"Na<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>B</span>H<sub>4</sub> 中的 B"},{"id":60,"sectionId":"SECTION_3","species":"OF2","target":"F","answer":"-1","ruleId":"RULE_D_FLUORINE","skillId":"FLUORINE_MINUS_ONE","ruleLabel":"Rule D（氟為 -1）","explanation":"化合物中 F 的氧化數必為 -1。","difficulty":3,"formula":"O<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>F</span><sub>2</sub> 中的 F"},{"id":61,"sectionId":"SECTION_3","species":"OF2","target":"O","answer":"+2","ruleId":"RULE_D_E_OXYGEN_FLUORIDE","skillId":"OXYGEN_FLUORIDE","ruleLabel":"Rule D／E（氧氟化物特例）","explanation":"F 強制為 -1 → x + 2(-1) = 0 → x = +2。","difficulty":3,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span>F<sub>2</sub> 中的 O"},{"id":62,"sectionId":"SECTION_3","species":"O2F2","target":"O","answer":"+1","ruleId":"RULE_D_E_OXYGEN_FLUORIDE","skillId":"OXYGEN_FLUORIDE","ruleLabel":"Rule D／E（氧氟化物特例）","explanation":"2x + 2(-1) = 0 → 2x = +2 → x = +1。","difficulty":3,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>2</sub>F<sub>2</sub> 中的 O"},{"id":63,"sectionId":"SECTION_3","species":"IF7","target":"I","answer":"+7","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 7(-1) = 0 → x = +7。","difficulty":3,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>I</span>F<sub>7</sub> 中的 I"},{"id":64,"sectionId":"SECTION_3","species":"BrF5","target":"Br","answer":"+5","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 5(-1) = 0 → x = +5。","difficulty":3,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Br</span>F<sub>5</sub> 中的 Br"},{"id":65,"sectionId":"SECTION_3","species":"ClF3","target":"Cl","answer":"+3","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 3(-1) = 0 → x = +3。","difficulty":3,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span>F<sub>3</sub> 中的 Cl"},{"id":66,"sectionId":"SECTION_4","species":"SO4(2-)","target":"S","answer":"+6","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -2 → x - 8 = -2 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>4</sub><sup>2-</sup> 中的 S"},{"id":67,"sectionId":"SECTION_4","species":"SO3(2-)","target":"S","answer":"+4","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -2 → x - 6 = -2 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>3</sub><sup>2-</sup> 中的 S"},{"id":68,"sectionId":"SECTION_4","species":"NO3(-)","target":"N","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -1 → x - 6 = -1 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>O<sub>3</sub><sup>-</sup> 中的 N"},{"id":69,"sectionId":"SECTION_4","species":"NO2(-)","target":"N","answer":"+3","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 2(-2) = -1 → x - 4 = -1 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>O<sub>2</sub><sup>-</sup> 中的 N"},{"id":70,"sectionId":"SECTION_4","species":"CO3(2-)","target":"C","answer":"+4","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -2 → x - 6 = -2 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>C</span>O<sub>3</sub><sup>2-</sup> 中的 C"},{"id":71,"sectionId":"SECTION_4","species":"HCO3(-)","target":"C","answer":"+4","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"1(+1) + x + 3(-2) = -1 → x - 5 = -1 → x = +4。","difficulty":2,"formula":"H<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>C</span>O<sub>3</sub><sup>-</sup> 中的 C"},{"id":72,"sectionId":"SECTION_4","species":"PO4(3-)","target":"P","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -3 → x - 8 = -3 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>P</span>O<sub>4</sub><sup>3-</sup> 中的 P"},{"id":73,"sectionId":"SECTION_4","species":"HPO4(2-)","target":"P","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"1(+1) + x + 4(-2) = -2 → x - 7 = -2 → x = +5。","difficulty":2,"formula":"H<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>P</span>O<sub>4</sub><sup>2-</sup> 中的 P"},{"id":74,"sectionId":"SECTION_4","species":"NH4(+)","target":"N","answer":"-3","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(+1) = +1 → x + 4 = +1 → x = -3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>H<sub>4</sub><sup>+</sup> 中的 N"},{"id":75,"sectionId":"SECTION_4","species":"ClO(-)","target":"Cl","answer":"+1","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + (-2) = -1 → x = +1。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span>O<sup>-</sup> 中的 Cl"},{"id":76,"sectionId":"SECTION_4","species":"ClO2(-)","target":"Cl","answer":"+3","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 2(-2) = -1 → x - 4 = -1 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span>O<sub>2</sub><sup>-</sup> 中的 Cl"},{"id":77,"sectionId":"SECTION_4","species":"ClO3(-)","target":"Cl","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -1 → x - 6 = -1 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span>O<sub>3</sub><sup>-</sup> 中的 Cl"},{"id":78,"sectionId":"SECTION_4","species":"ClO4(-)","target":"Cl","answer":"+7","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -1 → x - 8 = -1 → x = +7。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span>O<sub>4</sub><sup>-</sup> 中的 Cl"},{"id":79,"sectionId":"SECTION_4","species":"BrO3(-)","target":"Br","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -1 → x - 6 = -1 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Br</span>O<sub>3</sub><sup>-</sup> 中的 Br"},{"id":80,"sectionId":"SECTION_4","species":"IO3(-)","target":"I","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -1 → x - 6 = -1 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>I</span>O<sub>3</sub><sup>-</sup> 中的 I"},{"id":81,"sectionId":"SECTION_4","species":"CrO4(2-)","target":"Cr","answer":"+6","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -2 → x - 8 = -2 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span>O<sub>4</sub><sup>2-</sup> 中的 Cr"},{"id":82,"sectionId":"SECTION_4","species":"Cr2O7(2-)","target":"Cr","answer":"+6","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"2x + 7(-2) = -2 → 2x = +12 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span><sub>2</sub>O<sub>7</sub><sup>2-</sup> 中的 Cr"},{"id":83,"sectionId":"SECTION_4","species":"MnO4(-)","target":"Mn","answer":"+7","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -1 → x - 8 = -1 → x = +7。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mn</span>O<sub>4</sub><sup>-</sup> 中的 Mn"},{"id":84,"sectionId":"SECTION_4","species":"MnO4(2-)","target":"Mn","answer":"+6","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -2 → x - 8 = -2 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mn</span>O<sub>4</sub><sup>2-</sup> 中的 Mn"},{"id":85,"sectionId":"SECTION_4","species":"KMnO4","target":"Mn","answer":"+7","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"1(+1) + x + 4(-2) = 0 → x - 7 = 0 → x = +7。","difficulty":2,"formula":"K<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mn</span>O<sub>4</sub> 中的 Mn"},{"id":86,"sectionId":"SECTION_4","species":"K2Cr2O7","target":"Cr","answer":"+6","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2(+1) + 2x + 7(-2) = 0 → 2x = +12 → x = +6。","difficulty":2,"formula":"K<sub>2</sub><span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span><sub>2</sub>O<sub>7</sub> 中的 Cr"},{"id":87,"sectionId":"SECTION_4","species":"HSO4(-)","target":"S","answer":"+6","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"1(+1) + x + 4(-2) = -1 → x - 7 = -1 → x = +6。","difficulty":2,"formula":"H<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>4</sub><sup>-</sup> 中的 S"},{"id":88,"sectionId":"SECTION_4","species":"HSO3(-)","target":"S","answer":"+4","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"1(+1) + x + 3(-2) = -1 → x - 5 = -1 → x = +4。","difficulty":2,"formula":"H<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>3</sub><sup>-</sup> 中的 S"},{"id":89,"sectionId":"SECTION_4","species":"SiO3(2-)","target":"Si","answer":"+4","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -2 → x - 6 = -2 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Si</span>O<sub>3</sub><sup>2-</sup> 中的 Si"},{"id":90,"sectionId":"SECTION_4","species":"BO3(3-)","target":"B","answer":"+3","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -3 → x - 6 = -3 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>B</span>O<sub>3</sub><sup>3-</sup> 中的 B"},{"id":91,"sectionId":"SECTION_5","species":"[Co(H2O)4Cl2]+","target":"Co","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0，Cl⁻ 為 -1：x + 4(0) + 2(-1) = +1 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Co</span>(H<sub>2</sub>O)<sub>4</sub>Cl<sub>2</sub>]<sup>+</sup> 中的 Co"},{"id":92,"sectionId":"SECTION_5","species":"[Co(NH3)6]3+","target":"Co","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為中性配體 (0)：x + 6(0) = +3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Co</span>(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> 中的 Co"},{"id":93,"sectionId":"SECTION_5","species":"[Co(NH3)5Cl]2+","target":"Co","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"x + 5(0) + (-1) = +2 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Co</span>(NH<sub>3</sub>)<sub>5</sub>Cl]<sup>2+</sup> 中的 Co"},{"id":94,"sectionId":"SECTION_5","species":"[CoCl4]2-","target":"Co","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"x + 4(-1) = -2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Co</span>Cl<sub>4</sub>]<sup>2-</sup> 中的 Co"},{"id":95,"sectionId":"SECTION_5","species":"[Fe(H2O)6]3+","target":"Fe","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0：x + 6(0) = +3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> 中的 Fe"},{"id":96,"sectionId":"SECTION_5","species":"[Fe(H2O)6]2+","target":"Fe","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0：x + 6(0) = +2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup> 中的 Fe"},{"id":97,"sectionId":"SECTION_5","species":"[Fe(CN)6]3-","target":"Fe","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"CN⁻ 電荷為 -1：x + 6(-1) = -3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(CN)<sub>6</sub>]<sup>3-</sup> 中的 Fe"},{"id":98,"sectionId":"SECTION_5","species":"[Fe(CN)6]4-","target":"Fe","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"CN⁻ 電荷為 -1：x + 6(-1) = -4 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(CN)<sub>6</sub>]<sup>4-</sup> 中的 Fe"},{"id":99,"sectionId":"SECTION_5","species":"[Fe(SCN)]2+","target":"Fe","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"SCN⁻ 電荷為 -1：x + (-1) = +2 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(SCN)]<sup>2+</sup> 中的 Fe"},{"id":100,"sectionId":"SECTION_5","species":"Fe(CO)5","target":"Fe","answer":"0","ruleId":"RULE_COMPLEX_NEUTRAL","skillId":"NEUTRAL_COMPLEX_LIGAND","ruleLabel":"中性錯合物（配體電荷法）","explanation":"CO 為中性配體 (0)：x + 5(0) = 0 → x = 0。","difficulty":4,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(CO)<sub>5</sub> 中的 Fe"},{"id":101,"sectionId":"SECTION_5","species":"[Cu(NH3)4]2+","target":"Cu","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為 0：x + 4(0) = +2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span>(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup> 中的 Cu"},{"id":102,"sectionId":"SECTION_5","species":"[CuCl4]2-","target":"Cu","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"x + 4(-1) = -2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span>Cl<sub>4</sub>]<sup>2-</sup> 中的 Cu"},{"id":103,"sectionId":"SECTION_5","species":"[Cu(H2O)6]2+","target":"Cu","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0：x + 6(0) = +2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span>(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup> 中的 Cu"},{"id":104,"sectionId":"SECTION_5","species":"[Ni(NH3)6]2+","target":"Ni","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為 0：x + 6(0) = +2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ni</span>(NH<sub>3</sub>)<sub>6</sub>]<sup>2+</sup> 中的 Ni"},{"id":105,"sectionId":"SECTION_5","species":"[Ni(CN)4]2-","target":"Ni","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"CN⁻ 電荷為 -1：x + 4(-1) = -2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ni</span>(CN)<sub>4</sub>]<sup>2-</sup> 中的 Ni"},{"id":106,"sectionId":"SECTION_5","species":"Ni(CO)4","target":"Ni","answer":"0","ruleId":"RULE_COMPLEX_NEUTRAL","skillId":"NEUTRAL_COMPLEX_LIGAND","ruleLabel":"中性錯合物（配體電荷法）","explanation":"CO 為 0：x + 4(0) = 0 → x = 0。","difficulty":4,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ni</span>(CO)<sub>4</sub> 中的 Ni"},{"id":107,"sectionId":"SECTION_5","species":"[Cr(H2O)6]3+","target":"Cr","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0：x + 6(0) = +3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span>(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> 中的 Cr"},{"id":108,"sectionId":"SECTION_5","species":"[Cr(H2O)4Cl2]+","target":"Cr","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"x + 4(0) + 2(-1) = +1 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span>(H<sub>2</sub>O)<sub>4</sub>Cl<sub>2</sub>]<sup>+</sup> 中的 Cr"},{"id":109,"sectionId":"SECTION_5","species":"[Cr(OH)4]-","target":"Cr","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"OH⁻ 電荷為 -1：x + 4(-1) = -1 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span>(OH)<sub>4</sub>]<sup>-</sup> 中的 Cr"},{"id":110,"sectionId":"SECTION_5","species":"[Cr(NH3)6]3+","target":"Cr","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為 0：x + 6(0) = +3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span>(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> 中的 Cr"},{"id":111,"sectionId":"SECTION_5","species":"[Ag(NH3)2]+","target":"Ag","answer":"+1","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為 0：x + 2(0) = +1 → x = +1。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ag</span>(NH<sub>3</sub>)<sub>2</sub>]<sup>+</sup> 中的 Ag"},{"id":112,"sectionId":"SECTION_5","species":"[Ag(CN)2]-","target":"Ag","answer":"+1","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"CN⁻ 電荷為 -1：x + 2(-1) = -1 → x = +1。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ag</span>(CN)<sub>2</sub>]<sup>-</sup> 中的 Ag"},{"id":113,"sectionId":"SECTION_5","species":"[Zn(NH3)4]2+","target":"Zn","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為 0：x + 4(0) = +2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Zn</span>(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup> 中的 Zn"},{"id":114,"sectionId":"SECTION_5","species":"[Zn(OH)4]2-","target":"Zn","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"OH⁻ 電荷為 -1：x + 4(-1) = -2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Zn</span>(OH)<sub>4</sub>]<sup>2-</sup> 中的 Zn"},{"id":115,"sectionId":"SECTION_5","species":"[Al(OH)4]-","target":"Al","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"OH⁻ 電荷為 -1：x + 4(-1) = -1 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Al</span>(OH)<sub>4</sub>]<sup>-</sup> 中的 Al"},{"id":116,"sectionId":"SECTION_5","species":"[PtCl4]2-","target":"Pt","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"Cl⁻ 電荷為 -1：x + 4(-1) = -2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Pt</span>Cl<sub>4</sub>]<sup>2-</sup> 中的 Pt"},{"id":117,"sectionId":"SECTION_5","species":"[PtCl6]2-","target":"Pt","answer":"+4","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"Cl⁻ 電荷為 -1：x + 6(-1) = -2 → x = +4。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Pt</span>Cl<sub>6</sub>]<sup>2-</sup> 中的 Pt"},{"id":118,"sectionId":"SECTION_5","species":"[AuCl4]-","target":"Au","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"Cl⁻ 電荷為 -1：x + 4(-1) = -1 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Au</span>Cl<sub>4</sub>]<sup>-</sup> 中的 Au"},{"id":119,"sectionId":"SECTION_5","species":"[Fe(C2O4)3]3-","target":"Fe","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"草酸根 C2O4(2-) 電荷為 -2：x + 3(-2) = -3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(C<sub>2</sub>O<sub>4</sub>)<sub>3</sub>]<sup>3-</sup> 中的 Fe"},{"id":120,"sectionId":"SECTION_5","species":"[V(H2O)6]3+","target":"V","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0：x + 6(0) = +3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>V</span>(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> 中的 V"}];
+
+        (function installV3() {
+    const SECTION_META = {
+        ALL: { label: "全範圍", short: "全部範圍" },
+        SECTION_1: { label: "第一區：單質與單原子離子", short: "第一區" },
+        SECTION_2: { label: "第二區：二元化合物與氧化物", short: "第二區" },
+        SECTION_3: { label: "第三區：DSE常考規則特例", short: "第三區" },
+        SECTION_4: { label: "第四區：多原子離子與酸根", short: "第四區" },
+        SECTION_5: { label: "第五區：錯合物與錯離子", short: "第五區" }
+    };
+    const STORAGE = {
+        settings: "hkdse_ox_settings_v3",
+        records: "hkdse_ox_records_v3"
+    };
+    // 🏆 即時龍虎榜 Google Apps Script Web App URL
+    const HOF_API_URL = "https://script.google.com/macros/s/AKfycbzxAyEahDYSSFerzsDoYPLZB_ng_HrqzUnae5lv3BalDVAvcmVukWEyEuZajsICf2jW/exec";
+    const HERO_TIME_MS = {
+        "🧙‍♂️": 12000,
+        "🧙‍♀️": 15000,
+        "🧑‍🔬": 20000,
+        "🤖": 9000
+    };
+    const MONSTER_ROSTERS = {
+        tutorial: [
+            { icon: "👾", name: "氧化數練習怪" },
+            { icon: "👻", name: "電荷幽靈" },
+            { icon: "🤖", name: "化合價機械獸" },
+            { icon: "🦂", name: "過氧特例蠍" },
+            { icon: "🐙", name: "多原子章魚" },
+            { icon: "🧌", name: "配體巨魔" },
+            { icon: "👽", name: "電子異星獸" },
+            { icon: "🦇", name: "氧化蝙蝠" }
+        ],
+        challenge: [
+            { icon: "👹", name: "極速氧化魔王" },
+            { icon: "😈", name: "電荷惡魔" },
+            { icon: "🐉", name: "氧化巨龍" },
+            { icon: "🧟", name: "配平亡靈" },
+            { icon: "💀", name: "化合價死神" },
+            { icon: "🦖", name: "規則暴龍" },
+            { icon: "☠️", name: "終極電荷王" },
+            { icon: "🐲", name: "配體龍王" }
+        ],
+        review: [
+            { icon: "🧠", name: "錯題記憶獸" },
+            { icon: "🕷️", name: "規則蜘蛛" },
+            { icon: "🐛", name: "概念小蟲" },
+            { icon: "🪲", name: "重練甲蟲" }
+        ]
+    };
+    const MAX_REVIEW_ATTEMPTS = 2;
+    const SETTINGS_DEFAULTS = {
+        sound: true,
+        reduceMotion: false,
+        highContrast: false,
+        answerTimeMs: 12000,
+        category: "ALL",
+        length: "RANGE",
+        playerName: "化學大導師",
+        avatar: "🧙‍♂️"
+    };
+
+    let settings = loadSettings();
+    let state = freshState();
+    let timerHandle = null;
+    let timerDeadline = 0;
+    let timerRemaining = 0;
+    let timerPaused = true;
+    let activeModal = null;
+    let modalReturnFocus = null;
+    let memoryRecords = [];
+
+    const $ = id => document.getElementById(id);
+    const elements = {
+        welcome: $("screen-welcome"),
+        playerInput: $("player-name-input"),
+        category: $("category-select"),
+        length: $("question-count-select"),
+        time: $("answer-time-select"),
+        headerAvatar: $("header-avatar"),
+        headerName: $("header-player-name"),
+        modeBadge: $("mode-badge"),
+        hpText: $("player-hp-text"),
+        score: $("score-display"),
+        combo: $("combo-display"),
+        progress: $("question-progress-display"),
+        wave: $("wave-title"),
+        formula: $("formula-display"),
+        monster: $("monster-avatar"),
+        monsterName: $("monster-name"),
+        monsterHpText: $("monster-hp-text"),
+        monsterHpBar: $("monster-hp-bar"),
+        timerBar: $("monster-timer-bar"),
+        answer: $("ans-input"),
+        shoot: $("btn-shoot"),
+        hint: $("btn-hint"),
+        hintPanel: $("hint-panel"),
+        feedback: $("modal-feedback"),
+        rules: $("modal-rules"),
+        history: $("modal-leaderboard"),
+        results: $("modal-results"),
+        settings: $("modal-settings"),
+        timerLive: $("timer-live")
+    };
+
+    function freshState() {
+        return {
+            mode: "tutorial",
+            category: "ALL",
+            sessionLabel: "",
+            baseQuestions: [],
+            firstQueue: [],
+            scheduledReviews: [],
+            currentItem: null,
+            step: 0,
+            firstCompleted: 0,
+            reviewCompleted: 0,
+            score: 0,
+            combo: 0,
+            hp: 5,
+            monstersDefeated: 0,
+            gameEnded: true,
+            answerLocked: false,
+            hintUsed: false,
+            questionStartedAt: 0,
+            firstResults: new Map(),
+            reviewResults: new Map(),
+            reviewAttemptsById: new Map(),
+            attempts: []
+        };
+    }
+
+    function loadSettings() {
+        try {
+            const stored = JSON.parse(localStorage.getItem(STORAGE.settings) || "{}");
+            return { ...SETTINGS_DEFAULTS, ...stored };
+        } catch {
+            return { ...SETTINGS_DEFAULTS };
+        }
+    }
+
+    function saveSettings() {
+        try {
+            localStorage.setItem(STORAGE.settings, JSON.stringify(settings));
+        } catch {
+            // file://可能限制localStorage；設定仍保留至本次關閉頁面。
+        }
+    }
+
+    function applySettings() {
+        settings.answerTimeMs = HERO_TIME_MS[settings.avatar] || SETTINGS_DEFAULTS.answerTimeMs;
+        document.body.classList.toggle("reduce-motion", settings.reduceMotion);
+        document.body.classList.toggle("high-contrast", settings.highContrast);
+        sfx.enabled = settings.sound;
+        elements.playerInput.value = settings.playerName;
+        elements.category.value = settings.category;
+        elements.length.value = settings.length;
+        elements.time.value = String(settings.answerTimeMs);
+        $("setting-sound").setAttribute("aria-pressed", String(settings.sound));
+        $("setting-motion").setAttribute("aria-pressed", String(settings.reduceMotion));
+        $("setting-contrast").setAttribute("aria-pressed", String(settings.highContrast));
+        $("setting-sound").textContent = settings.sound ? "🔊 音效：開" : "🔇 音效：關";
+        $("setting-motion").textContent = settings.reduceMotion ? "◼ 減少動畫：開" : "✨ 減少動畫：關";
+        $("setting-contrast").textContent = settings.highContrast ? "◐ 高對比：開" : "◑ 高對比：關";
+        document.querySelectorAll(".char-opt-btn").forEach(button => {
+            const active = button.dataset.avatar === settings.avatar;
+            button.classList.toggle("border-cyan-400", active);
+            button.classList.toggle("border-slate-700", !active);
+        });
+    }
+
+    function shuffle(items) {
+        const result = [...items];
+        for (let index = result.length - 1; index > 0; index--) {
+            const swapIndex = Math.floor(Math.random() * (index + 1));
+            [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+        }
+        return result;
+    }
+
+    function chooseQuestions(mode, overrideQuestions = null) {
+        if (overrideQuestions) return [...overrideQuestions].sort((a, b) => a.id - b.id);
+        let pool = settings.length === "ALL120"
+            ? [...QUESTION_DATABASE]
+            : QUESTION_DATABASE.filter(question => settings.category === "ALL" || question.sectionId === settings.category);
+        pool.sort((a, b) => a.id - b.id);
+        if (mode === "challenge") pool = shuffle(pool);
+        if (settings.length === "10") pool = pool.slice(0, 10);
+        if (settings.length === "20") pool = pool.slice(0, 20);
+        return pool;
+    }
+
+    function normalizeAnswer(value) {
+        let normalized = value
+            .trim()
+            .replace(/[＋﹢]/g, "+")
+            .replace(/[−–—﹣－]/g, "-")
+            .replace(/[０-９]/g, character => String(character.charCodeAt(0) - 0xFF10))
+            .replace(/\s+/g, "");
+        if (/^[+-]?0+$/.test(normalized)) return "0";
+        if (/^\d+$/.test(normalized)) normalized = `+${Number(normalized)}`;
+        if (/^\+\d+$/.test(normalized)) normalized = `+${Number(normalized.slice(1))}`;
+        if (/^-\d+$/.test(normalized)) normalized = `-${Number(normalized.slice(1))}`;
+        return normalized;
+    }
+
+    function verifyAnswerInputSupport() {
+        const cases = new Map([
+            ["-3", "-3"], ["-2", "-2"], ["-1", "-1"], ["0", "0"],
+            ["+1", "+1"], ["+2", "+2"], ["+3", "+3"], ["+4", "+4"],
+            ["+5", "+5"], ["+6", "+6"], ["+7", "+7"],
+            ["－３", "-3"], ["−２", "-2"], ["０", "0"], ["＋１", "+1"],
+            ["＋７", "+7"], ["3", "+3"], ["００", "0"]
+        ]);
+        for (const [input, expected] of cases) {
+            if (normalizeAnswer(input) !== expected) throw new Error(`作答輸入驗證失敗：${input}`);
+        }
+    }
+
+    function startSession(mode, overrideQuestions = null, label = "") {
+        settings.playerName = (elements.playerInput.value.trim() || "化學大導師").slice(0, 24);
+        settings.category = elements.category.value;
+        settings.length = elements.length.value;
+        settings.answerTimeMs = Number(elements.time.value);
+        saveSettings();
+
+        const questions = chooseQuestions(mode, overrideQuestions);
+        if (!questions.length) return;
+        state = freshState();
+        state.mode = mode;
+        state.category = settings.category;
+        state.sessionLabel = label || (settings.length === "ALL120" ? "全部範圍" : SECTION_META[settings.category].short);
+        state.baseQuestions = questions;
+        state.firstQueue = questions.map(question => ({ question, phase: "first" }));
+        state.gameEnded = false;
+
+        elements.headerAvatar.textContent = settings.avatar;
+        elements.headerName.textContent = settings.playerName;
+        $("wizard").firstChild.nodeValue = settings.avatar;
+        elements.modeBadge.textContent = mode === "challenge" ? "🔥 挑戰關" : "📚 教學關";
+        elements.modeBadge.className = mode === "challenge"
+            ? "ml-2 bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full"
+            : "ml-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full";
+        elements.welcome.classList.add("hidden");
+        closeModal(elements.results, false);
+        $("btn-rules").disabled = mode === "challenge";
+        elements.hint.classList.toggle("hidden", mode === "challenge");
+        updateStats();
+        if (sfx.enabled) {
+            sfx.init();
+            if (sfx.ctx?.state === "suspended") sfx.ctx.resume();
+        }
+        loadNextItem();
+    }
+
+    function loadNextItem() {
+        if (state.gameEnded) return;
+        const dueIndex = state.scheduledReviews.findIndex(item => item.dueStep <= state.step);
+        if (dueIndex >= 0) {
+            state.currentItem = state.scheduledReviews.splice(dueIndex, 1)[0];
+        } else if (state.firstQueue.length) {
+            state.currentItem = state.firstQueue.shift();
+        } else if (state.scheduledReviews.length) {
+            state.scheduledReviews.sort((a, b) => a.dueStep - b.dueStep);
+            state.currentItem = state.scheduledReviews.shift();
+        } else {
+            finishSession(true, "已完成所選題庫及錯題重練！");
+            return;
+        }
+
+        state.answerLocked = false;
+        state.hintUsed = false;
+        elements.answer.value = "";
+        elements.answer.disabled = false;
+        elements.shoot.disabled = false;
+        elements.hint.disabled = false;
+        elements.hintPanel.classList.add("hidden");
+        const { question, phase } = state.currentItem;
+        const rosterKey = phase === "review" ? "review" : state.mode;
+        const roster = MONSTER_ROSTERS[rosterKey];
+        const monster = roster[state.monstersDefeated % roster.length];
+        elements.formula.innerHTML = question.formula;
+        elements.monster.textContent = monster.icon;
+        elements.monster.dataset.monsterKey = `${rosterKey}-${state.monstersDefeated % roster.length}`;
+        elements.monsterName.textContent = monster.name;
+        elements.monsterHpText.textContent = "1/1";
+        elements.monsterHpBar.style.width = "100%";
+        elements.wave.textContent = phase === "review" ? `REVIEW ${state.reviewCompleted + 1}` : `QUESTION ${state.firstCompleted + 1}`;
+        elements.progress.textContent = phase === "review"
+            ? `重練｜${state.firstCompleted}/${state.baseQuestions.length}`
+            : `${state.firstCompleted + 1} / ${state.baseQuestions.length}`;
+        state.questionStartedAt = performance.now();
+        startTimer(settings.answerTimeMs);
+        elements.answer.focus();
+    }
+
+    function startTimer(duration) {
+        clearInterval(timerHandle);
+        timerRemaining = duration;
+        timerDeadline = performance.now() + duration;
+        timerPaused = false;
+        elements.timerBar.style.width = "100%";
+        timerHandle = setInterval(tickTimer, 100);
+        tickTimer();
+    }
+
+    function tickTimer() {
+        if (timerPaused || state.gameEnded || state.answerLocked) return;
+        timerRemaining = Math.max(0, timerDeadline - performance.now());
+        elements.timerBar.style.width = `${Math.max(0, timerRemaining / settings.answerTimeMs) * 100}%`;
+        const seconds = Math.ceil(timerRemaining / 1000);
+        if ([5, 3, 1].includes(seconds) && elements.timerLive.dataset.last !== String(seconds)) {
+            elements.timerLive.dataset.last = String(seconds);
+            elements.timerLive.textContent = `尚餘${seconds}秒`;
+        }
+        if (timerRemaining <= 0) {
+            clearInterval(timerHandle);
+            resolveAnswer(false, "未作答", "⏳ 作答時間結束");
+        }
+    }
+
+    function pauseTimer() {
+        if (timerPaused) return;
+        timerRemaining = Math.max(0, timerDeadline - performance.now());
+        timerPaused = true;
+        clearInterval(timerHandle);
+    }
+
+    function resumeTimer() {
+        if (!timerPaused || state.answerLocked || state.gameEnded) return;
+        timerDeadline = performance.now() + timerRemaining;
+        timerPaused = false;
+        timerHandle = setInterval(tickTimer, 100);
+        tickTimer();
+    }
+
+    function checkAnswer() {
+        if (state.answerLocked || state.gameEnded || timerPaused) return;
+        if (!elements.answer.value.trim()) {
+            showToast("請先輸入氧化數", "bg-slate-700/95");
+            elements.answer.focus();
+            return;
+        }
+        const submitted = normalizeAnswer(elements.answer.value);
+        resolveAnswer(submitted === state.currentItem.question.answer, submitted, submitted === state.currentItem.question.answer ? "✨ 答對了！" : "❌ 答案不正確");
+    }
+
+    function resolveAnswer(correct, submitted, title) {
+        if (state.answerLocked || state.gameEnded) return;
+        state.answerLocked = true;
+        pauseTimer();
+        elements.answer.disabled = true;
+        elements.shoot.disabled = true;
+        elements.hint.disabled = true;
+        const { question, phase } = state.currentItem;
+        const elapsedMs = Math.min(settings.answerTimeMs, Math.round(performance.now() - state.questionStartedAt));
+        const attempt = {
+            timestamp: new Date().toISOString(),
+            playerName: settings.playerName,
+            mode: state.mode,
+            category: state.sessionLabel,
+            configuredLength: settings.length,
+            answerTimeMs: settings.answerTimeMs,
+            questionId: question.id,
+            species: question.species,
+            target: question.target,
+            correctAnswer: question.answer,
+            submittedAnswer: submitted,
+            correct,
+            ruleId: question.ruleId,
+            ruleLabel: question.ruleLabel,
+            skillId: question.skillId,
+            difficulty: question.difficulty,
+            elapsedMs,
+            phase,
+            hintUsed: state.hintUsed
+        };
+        state.attempts.push(attempt);
+        state.step++;
+
+        if (phase === "first") {
+            state.firstCompleted++;
+            state.firstResults.set(question.id, attempt);
+            if (!correct && state.mode === "tutorial") {
+                state.scheduledReviews.push({ question, phase: "review", dueStep: state.step + 3 });
+                state.reviewAttemptsById.set(question.id, 0);
+            }
+        } else {
+            state.reviewCompleted++;
+            const attempts = (state.reviewAttemptsById.get(question.id) || 0) + 1;
+            state.reviewAttemptsById.set(question.id, attempts);
+            const history = state.reviewResults.get(question.id) || [];
+            history.push(attempt);
+            state.reviewResults.set(question.id, history);
+            if (!correct && attempts < MAX_REVIEW_ATTEMPTS) {
+                state.scheduledReviews.push({ question, phase: "review", dueStep: state.step + 3 });
+            }
+        }
+
+        if (correct) {
+            state.combo++;
+            state.monstersDefeated++;
+            const timeBonus = Math.max(0, Math.round(timerRemaining / 100));
+            const phasePoints = phase === "review" ? 60 : 100;
+            const hintPenalty = state.hintUsed ? 20 : 0;
+            state.score += Math.max(20, phasePoints + Math.min(state.combo, 10) * 10 + timeBonus - hintPenalty);
+            elements.monsterHpText.textContent = "0/1";
+            elements.monsterHpBar.style.width = "0%";
+            sfx.playHit();
+            castLaser("player");
+        } else {
+            state.combo = 0;
+            state.hp = Math.max(0, state.hp - 1);
+            sfx.playMonsterAttack();
+            castLaser("monster");
+        }
+        updateStats();
+
+        if (state.mode === "challenge") {
+            showToast(correct ? "⚡ 命中！" : `💥 ${title}｜答案：${question.answer}`, correct ? "bg-emerald-600/95" : "bg-rose-600/95");
+            if (state.hp <= 0) setTimeout(() => finishSession(false, "生命值耗盡，挑戰結束。"), 850);
+            else setTimeout(loadNextItem, 850);
+        } else {
+            showFeedback(correct, submitted, title);
+        }
+    }
+
+    function showFeedback(correct, submitted, title) {
+        const question = state.currentItem.question;
+        const badge = $("fb-header-badge");
+        badge.className = correct
+            ? "inline-block px-3 py-1 rounded-full text-xs font-black mb-3 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+            : "inline-block px-3 py-1 rounded-full text-xs font-black mb-3 bg-rose-500/20 text-rose-300 border border-rose-500/40";
+        badge.textContent = correct ? "✨ MAGIC HIT 魔法命中！" : "⚠️ MONSTER ATTACK 遭受反擊！";
+        $("fb-title").textContent = title;
+        $("fb-rule-tag").textContent = question.ruleLabel;
+        $("fb-calc-steps").innerHTML =
+            `<div class="mb-2">${question.formula}</div><div>${correct ? "你的答案正確。" : `你的答案：${submitted}｜正確答案：${question.answer}`}</div><div class="mt-1 text-amber-300 font-bold">氧化數 = ${question.answer}</div>`;
+        $("fb-dse-tip").textContent = question.explanation;
+        openModal(elements.feedback, $("btn-next-wave"));
+    }
+
+    function continueAfterFeedback() {
+        closeModal(elements.feedback, false);
+        loadNextItem();
+    }
+
+    function showHint() {
+        if (state.mode !== "tutorial" || state.answerLocked) return;
+        state.hintUsed = true;
+        elements.hintPanel.textContent = `提示：先套用「${state.currentItem.question.ruleLabel}」，再令各原子的氧化數總和符合物種的整體電荷。`;
+        elements.hintPanel.classList.remove("hidden");
+        elements.hint.disabled = true;
+    }
+
+    function updateStats() {
+        elements.hpText.textContent = `${state.hp} / 5`;
+        elements.score.textContent = String(state.score).padStart(4, "0");
+        elements.combo.textContent = `${state.combo}x`;
+    }
+
+    function calculateSummary() {
+        const firstAttempts = [...state.firstResults.values()];
+        const firstCorrect = firstAttempts.filter(item => item.correct).length;
+        const reviewQuestionIds = [...state.reviewResults.keys()];
+        const masteredAfterReview = reviewQuestionIds.filter(id => {
+            const attempts = state.reviewResults.get(id) || [];
+            return attempts.some(item => item.correct);
+        }).length;
+        const wrongFirstIds = firstAttempts.filter(item => !item.correct).map(item => item.questionId);
+        const unmasteredIds = wrongFirstIds.filter(id => {
+            const attempts = state.reviewResults.get(id) || [];
+            return !attempts.some(item => item.correct);
+        });
+        const averageMs = firstAttempts.length
+            ? Math.round(firstAttempts.reduce((sum, item) => sum + item.elapsedMs, 0) / firstAttempts.length)
+            : 0;
+        const firstAccuracy = firstAttempts.length ? Math.round(firstCorrect / firstAttempts.length * 100) : 0;
+        const reviewMastery = wrongFirstIds.length ? Math.round((wrongFirstIds.length - unmasteredIds.length) / wrongFirstIds.length * 100) : 100;
+        return { firstAttempts, firstCorrect, firstAccuracy, reviewMastery, wrongFirstIds, unmasteredIds, averageMs, masteredAfterReview };
+    }
+
+    function finishSession(completed, reason) {
+        if (state.gameEnded) return;
+        state.gameEnded = true;
+        pauseTimer();
+        const summary = calculateSummary();
+        saveRecord(summary, completed);
+        renderResults(summary, completed, reason);
+    }
+
+    function ruleSummary() {
+        const grouped = new Map();
+        for (const attempt of state.firstResults.values()) {
+            if (!grouped.has(attempt.ruleId)) grouped.set(attempt.ruleId, { label: attempt.ruleLabel, attempted: 0, correct: 0, elapsed: 0 });
+            const item = grouped.get(attempt.ruleId);
+            item.attempted++;
+            item.correct += Number(attempt.correct);
+            item.elapsed += attempt.elapsedMs;
+        }
+        return [...grouped.entries()].map(([ruleId, item]) => ({
+            ruleId,
+            ...item,
+            rate: item.attempted ? Math.round(item.correct / item.attempted * 100) : 0,
+            averageMs: item.attempted ? Math.round(item.elapsed / item.attempted) : 0
+        })).sort((a, b) => a.rate - b.rate || b.attempted - a.attempted);
+    }
+
+    function renderResults(summary, completed, reason) {
+        $("result-icon").textContent = completed ? "🏆" : "🛡️";
+        $("result-title").textContent = completed ? "學習任務完成！" : "本次挑戰結束";
+        $("result-reason").textContent = reason;
+        $("result-score").textContent = state.score;
+        $("result-first-accuracy").textContent = `${summary.firstAccuracy}%`;
+        $("result-review-mastery").textContent = state.mode === "challenge" ? "不適用" : `${summary.reviewMastery}%`;
+        $("result-average-time").textContent = `${(summary.averageMs / 1000).toFixed(1)}秒`;
+
+        const rules = $("result-rule-stats");
+        rules.replaceChildren();
+        for (const item of ruleSummary().slice(0, 6)) {
+            const row = document.createElement("div");
+            row.className = "flex justify-between gap-3 text-xs bg-slate-950/70 rounded-lg px-3 py-2";
+            const label = document.createElement("span");
+            label.className = "text-slate-300";
+            label.textContent = item.label;
+            const value = document.createElement("span");
+            value.className = item.rate >= 80 ? "text-emerald-300 font-bold" : "text-amber-300 font-bold";
+            value.textContent = `${item.correct}/${item.attempted}（${item.rate}%）｜${(item.averageMs / 1000).toFixed(1)}秒`;
+            row.append(label, value);
+            rules.appendChild(row);
+        }
+
+        const mistakes = $("result-mistakes");
+        mistakes.replaceChildren();
+        if (!summary.unmasteredIds.length) {
+            mistakes.textContent = summary.wrongFirstIds.length ? "錯題已在重練中掌握。" : "首次作答沒有錯題，表現出色！";
+            mistakes.className = "space-y-1.5 max-h-52 overflow-y-auto text-emerald-300 text-xs py-2";
+        } else {
+            mistakes.className = "space-y-1.5 max-h-52 overflow-y-auto";
+            for (const id of summary.unmasteredIds.slice(0, 8)) {
+                const question = QUESTION_DATABASE.find(item => item.id === id);
+                const row = document.createElement("div");
+                row.className = "text-xs bg-slate-950/70 rounded-lg px-3 py-2 text-slate-300";
+                row.textContent = `第${id}題｜${question.species} 中的 ${question.target}｜正確答案：${question.answer}`;
+                mistakes.appendChild(row);
+            }
+        }
+
+        $("btn-review-wrong").disabled = !summary.wrongFirstIds.length;
+        $("btn-review-weak").disabled = !ruleSummary().some(item => item.rate < 80);
+        openModal(elements.results, $("btn-results-home"));
+    }
+
+    function readRecords() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(STORAGE.records) || "[]");
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [...memoryRecords];
+        }
+    }
+
+    function writeRecords(records) {
+        memoryRecords = [...records];
+        try {
+            localStorage.setItem(STORAGE.records, JSON.stringify(records));
+        } catch {
+            // 以記憶體作本次瀏覽備用。
+        }
+    }
+
+    function comparisonKey(mode = state.mode, count = state.baseQuestions.length) {
+        return [mode, state.sessionLabel, count, settings.answerTimeMs].join("|");
+    }
+
+    function saveRecord(summary, completed) {
+        const record = {
+            key: comparisonKey(),
+            name: settings.playerName,
+            avatar: settings.avatar,
+            date: new Date().toLocaleDateString("zh-HK"),
+            mode: state.mode === "challenge" ? "挑戰關" : "教學關",
+            category: state.sessionLabel,
+            count: state.baseQuestions.length,
+            timeMs: settings.answerTimeMs,
+            firstAccuracy: summary.firstAccuracy,
+            reviewMastery: summary.reviewMastery,
+            score: state.score,
+            completed
+        };
+        const records = readRecords();
+        records.push(record);
+        records.sort((a, b) => b.firstAccuracy - a.firstAccuracy || b.reviewMastery - a.reviewMastery || b.score - a.score);
+        writeRecords(records.slice(0, 50));
+        submitScoreOnline(record);
+    }
+
+    // 🏆 即時龍虎榜：非同步送出成績到 Google Sheet（失敗唔影響遊戲）
+    function submitScoreOnline(record) {
+        if (!HOF_API_URL || HOF_API_URL.includes("PASTE_YOUR")) return;
+        fetch(HOF_API_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+                name: record.name,
+                avatar: record.avatar,
+                mode: record.mode,
+                category: record.category,
+                count: record.count,
+                timeMs: record.timeMs,
+                firstAccuracy: record.firstAccuracy,
+                reviewMastery: record.reviewMastery,
+                score: record.score,
+                completed: record.completed
+            })
+        }).catch(() => { /* 離線或網絡錯誤時靜默略過 */ });
+    }
+
+    // 🏆 即時龍虎榜：從 Google Sheet 攞相同設定嘅 Top 20；失敗就 fallback 用本機紀錄
+    async function fetchOnlineLeaderboard(targetKey) {
+        if (!HOF_API_URL || HOF_API_URL.includes("PASTE_YOUR")) return null;
+        const [mode, category, count, timeMs] = targetKey.split("|");
+        const modeLabel = mode === "challenge" ? "挑戰關" : "教學關";
+        const url = `${HOF_API_URL}?mode=${encodeURIComponent(modeLabel)}&category=${encodeURIComponent(category)}&count=${encodeURIComponent(count)}&timeMs=${encodeURIComponent(timeMs)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("leaderboard fetch failed");
+        const data = await res.json();
+        return Array.isArray(data) ? data : null;
+    }
+
+    async function renderHistory() {
+        const container = $("leaderboard-list");
+        container.replaceChildren();
+        const configuredLabel = elements.length.value === "ALL120" ? "全部範圍" : SECTION_META[elements.category.value].short;
+        const targetKey = [settings.lastMode || "tutorial", configuredLabel, estimateConfiguredCount(), Number(elements.time.value)].join("|");
+
+        const loading = document.createElement("div");
+        loading.className = "text-center text-slate-500 text-xs py-4";
+        loading.textContent = "🌐 載入即時龍虎榜中…";
+        container.appendChild(loading);
+
+        let records = null;
+        let online = false;
+        try {
+            records = await fetchOnlineLeaderboard(targetKey);
+            online = records !== null;
+        } catch {
+            records = null;
+        }
+        if (!online) {
+            records = readRecords().filter(record => record.key === targetKey).slice(0, 5);
+        }
+
+        container.replaceChildren();
+
+        const banner = document.createElement("div");
+        banner.className = online
+            ? "text-center text-[10px] text-emerald-400 font-bold pb-1"
+            : "text-center text-[10px] text-slate-500 pb-1";
+        banner.textContent = online ? "🌐 即時全班龍虎榜（Google Sheet）" : "📴 本機學習紀錄（未能連接網上龍虎榜）";
+        container.appendChild(banner);
+
+        if (!records.length) {
+            const empty = document.createElement("div");
+            empty.className = "text-center text-slate-500 text-xs py-4";
+            empty.textContent = online
+                ? "呢個設定仲未有同學上榜，快啲做第一名！"
+                : "目前設定尚無可比較紀錄。完成一次相同模式、範圍、題數及時間的練習後便會顯示。";
+            container.appendChild(empty);
+            return;
+        }
+        records.forEach((record, index) => {
+            const row = document.createElement("div");
+            row.className = "flex items-center justify-between gap-3 bg-slate-900/90 p-3 rounded-xl border border-slate-800";
+            const left = document.createElement("div");
+            left.className = "min-w-0";
+            const name = document.createElement("div");
+            name.className = "font-bold text-sm text-slate-200";
+            const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`;
+            name.textContent = `${medal} ${record.avatar} ${record.name}`;
+            const meta = document.createElement("div");
+            meta.className = "text-[10px] text-slate-500";
+            const dateText = record.date || (record.timestamp ? new Date(record.timestamp).toLocaleDateString("zh-HK") : "");
+            meta.textContent = `${record.mode}｜${record.category}｜${record.count}題｜${record.timeMs / 1000}秒｜${dateText}`;
+            left.append(name, meta);
+            const score = document.createElement("div");
+            score.className = "text-right shrink-0";
+            score.innerHTML = `<div class="font-black text-emerald-300">${record.firstAccuracy}%</div><div class="text-[10px] text-amber-300">${record.score} pts</div>`;
+            row.append(left, score);
+            container.appendChild(row);
+        });
+    }
+
+    function estimateConfiguredCount() {
+        if (elements.length.value === "10") return 10;
+        if (elements.length.value === "20") return 20;
+        if (elements.length.value === "ALL120") return 120;
+        return elements.category.value === "ALL"
+            ? QUESTION_DATABASE.length
+            : QUESTION_DATABASE.filter(question => question.sectionId === elements.category.value).length;
+    }
+
+    function csvSafe(value) {
+        let text = String(value ?? "");
+        if (/^[=+\-@]/.test(text)) text = `'${text}`;
+        return `"${text.replaceAll('"', '""')}"`;
+    }
+
+    function exportCsv() {
+        const headers = ["日期時間", "學生名稱", "模式", "範圍", "題數設定", "作答時間設定毫秒", "題號", "物種", "目標元素", "正確答案", "學生答案", "正確", "規則編號", "規則", "技能", "難度", "作答時間毫秒", "階段", "使用提示"];
+        const rows = state.attempts.map(item => [
+            item.timestamp, item.playerName, item.mode === "challenge" ? "挑戰關" : "教學關", item.category,
+            item.configuredLength, item.answerTimeMs, item.questionId, item.species, item.target,
+            item.correctAnswer, item.submittedAnswer, item.correct ? "是" : "否", item.ruleId,
+            item.ruleLabel, item.skillId, item.difficulty, item.elapsedMs,
+            item.phase === "first" ? "首次作答" : "錯題重練", item.hintUsed ? "是" : "否"
+        ]);
+        const csv = "\uFEFF" + [headers, ...rows].map(row => row.map(csvSafe).join(",")).join("\r\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `氧化數學習紀錄_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function retryWrong() {
+        const ids = calculateSummary().wrongFirstIds;
+        const questions = ids.map(id => QUESTION_DATABASE.find(item => item.id === id)).filter(Boolean);
+        closeModal(elements.results, false);
+        startSession("tutorial", questions, "首次錯題重練");
+    }
+
+    function retryWeakRules() {
+        const weakIds = ruleSummary().filter(item => item.rate < 80).slice(0, 2).map(item => item.ruleId);
+        const questions = state.baseQuestions.filter(question => weakIds.includes(question.ruleId));
+        closeModal(elements.results, false);
+        startSession("tutorial", questions, "較弱規則重練");
+    }
+
+    function castLaser(source) {
+        if (settings.reduceMotion) return;
+        const laser = document.createElement("div");
+        laser.className = source === "player" ? "laser-beam-player" : "laser-beam-monster";
+        $("game-container").appendChild(laser);
+        setTimeout(() => laser.remove(), 260);
+    }
+
+    function showToast(text, backgroundClass) {
+        const toast = document.createElement("div");
+        toast.className = `fixed top-1/3 left-1/2 toast-float px-5 py-2.5 rounded-2xl text-white font-black text-sm shadow-2xl z-[70] ${backgroundClass}`;
+        toast.textContent = text;
+        toast.setAttribute("role", "status");
+        toast.setAttribute("aria-live", "polite");
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 1250);
+    }
+
+    function focusable(modal) {
+        return [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+            .filter(element => !element.classList.contains("hidden"));
+    }
+
+    function openModal(modal, focusTarget = null) {
+        modalReturnFocus = document.activeElement;
+        activeModal = modal;
+        modal.classList.remove("hidden");
+        (focusTarget || focusable(modal)[0])?.focus();
+    }
+
+    function closeModal(modal, restore = true) {
+        modal.classList.add("hidden");
+        activeModal = null;
+        if (restore) modalReturnFocus?.focus();
+    }
+
+    function openPausedModal(modal, focusTarget) {
+        pauseTimer();
+        openModal(modal, focusTarget);
+    }
+
+    function closePausedModal(modal) {
+        closeModal(modal);
+        resumeTimer();
+    }
+
+    document.querySelectorAll(".char-opt-btn").forEach(button => {
+        button.addEventListener("click", () => {
+            settings.avatar = button.dataset.avatar;
+            applySettings();
+            saveSettings();
+        });
+    });
+    $("btn-start-tutorial").addEventListener("click", () => {
+        settings.lastMode = "tutorial";
+        startSession("tutorial");
+    });
+    $("btn-start-challenge").addEventListener("click", () => {
+        settings.lastMode = "challenge";
+        startSession("challenge");
+    });
+    elements.shoot.addEventListener("click", checkAnswer);
+    elements.answer.addEventListener("keydown", event => {
+        if (event.key === "Enter") checkAnswer();
+    });
+    elements.hint.addEventListener("click", showHint);
+    $("btn-next-wave").addEventListener("click", continueAfterFeedback);
+    document.querySelectorAll(".num-btn").forEach(button => {
+        button.addEventListener("click", () => {
+            elements.answer.value = button.textContent.trim();
+            checkAnswer();
+        });
+    });
+
+    $("btn-rules").addEventListener("click", () => openPausedModal(elements.rules, $("btn-close-rules")));
+    $("btn-close-rules").addEventListener("click", () => closePausedModal(elements.rules));
+    $("btn-settings").addEventListener("click", () => {
+        if (state.mode === "challenge" && !state.gameEnded) openModal(elements.settings, $("btn-close-settings"));
+        else openPausedModal(elements.settings, $("btn-close-settings"));
+    });
+    $("btn-close-settings").addEventListener("click", () => {
+        if (state.mode === "challenge" && !state.gameEnded) closeModal(elements.settings);
+        else closePausedModal(elements.settings);
+    });
+    $("btn-show-leaderboard").addEventListener("click", () => {
+        renderHistory();
+        openModal(elements.history, $("btn-close-leaderboard"));
+    });
+    $("btn-close-leaderboard").addEventListener("click", () => closeModal(elements.history));
+    $("btn-clear-lb").addEventListener("click", () => {
+        if (window.confirm("確定清除本機所有學習紀錄？")) {
+            writeRecords([]);
+            renderHistory();
+        }
+    });
+    $("btn-back-home").addEventListener("click", () => {
+        pauseTimer();
+        state.gameEnded = true;
+        elements.welcome.classList.remove("hidden");
+    });
+    $("btn-results-home").addEventListener("click", () => {
+        closeModal(elements.results, false);
+        elements.welcome.classList.remove("hidden");
+    });
+    $("btn-results-retry").addEventListener("click", () => {
+        closeModal(elements.results, false);
+        startSession(state.mode);
+    });
+    $("btn-review-wrong").addEventListener("click", retryWrong);
+    $("btn-review-weak").addEventListener("click", retryWeakRules);
+    $("btn-export-csv").addEventListener("click", exportCsv);
+
+    $("setting-sound").addEventListener("click", () => {
+        settings.sound = !settings.sound;
+        saveSettings();
+        applySettings();
+    });
+    $("setting-motion").addEventListener("click", () => {
+        settings.reduceMotion = !settings.reduceMotion;
+        saveSettings();
+        applySettings();
+    });
+    $("setting-contrast").addEventListener("click", () => {
+        settings.highContrast = !settings.highContrast;
+        saveSettings();
+        applySettings();
+    });
+    [elements.category, elements.length, elements.time, elements.playerInput].forEach(control => {
+        control.addEventListener("change", () => {
+            settings.category = elements.category.value;
+            settings.length = elements.length.value;
+            settings.answerTimeMs = Number(elements.time.value);
+            settings.playerName = elements.playerInput.value.slice(0, 24);
+            saveSettings();
+        });
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (state.gameEnded || state.answerLocked) return;
+        if (state.mode === "tutorial") {
+            if (document.hidden) pauseTimer();
+            else resumeTimer();
+        } else if (!document.hidden) {
+            tickTimer();
+        }
+    });
+
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && activeModal && activeModal !== elements.feedback && activeModal !== elements.results) {
+            if (activeModal === elements.rules || activeModal === elements.settings) closePausedModal(activeModal);
+            else closeModal(activeModal);
+            return;
+        }
+        if (event.key === "Tab" && activeModal) {
+            const items = focusable(activeModal);
+            if (!items.length) return;
+            const first = items[0];
+            const last = items[items.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+    });
+
+    if (!window.AudioContext && !window.webkitAudioContext) settings.sound = false;
+    verifyAnswerInputSupport();
+    applySettings();
+})();
+    </script>
+</body>
+</html>
