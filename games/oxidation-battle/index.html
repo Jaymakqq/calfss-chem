@@ -124,6 +124,25 @@
         select:disabled { opacity: 1; cursor: not-allowed; }
         .v3-topbar > div { min-width: 0; }
         #hint-panel { line-height: 1.55; }
+        .duel-action {
+            min-height: 48px;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,.28) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 5px 0 #0b1020, 0 9px 20px rgba(0,0,0,.38) !important;
+            transform: translateY(0);
+            transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+        }
+        .duel-action:hover:not(:disabled) {
+            filter: brightness(1.14);
+            transform: translateY(-2px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 7px 0 #0b1020, 0 12px 24px rgba(0,0,0,.42) !important;
+        }
+        .duel-action:active:not(:disabled) {
+            transform: translateY(4px) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 1px 0 #0b1020, 0 4px 10px rgba(0,0,0,.35) !important;
+        }
+        .duel-action:focus-visible { outline: 3px solid #fbbf24; outline-offset: 4px; }
+        .duel-action:disabled { cursor: not-allowed; opacity: .5; box-shadow: none !important; }
         body.high-contrast { background: #000; color: #fff; }
         body.high-contrast .glass-panel { background: #0b0f19; border-color: #fff; backdrop-filter: none; }
         body.high-contrast .text-slate-400, body.high-contrast .text-slate-500 { color: #d1d5db !important; }
@@ -246,6 +265,10 @@
                     <span class="text-[10px] opacity-90 font-normal">極速競技：無彈窗連擊流暢搶答</span>
                 </button>
             </div>
+
+            <button id="btn-start-duel" type="button" class="duel-action w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 px-4 rounded-xl shadow-lg transition mb-3">
+                ⚔️ 雙人即時對戰 <span class="text-[10px] font-normal">建立／加入房間</span>
+            </button>
 
             <button id="btn-show-leaderboard" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2">
                 <span aria-hidden="true">🏆</span> 查看即時龍虎榜
@@ -391,6 +414,33 @@
             <button class="num-btn bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-slate-600 text-sm transition">+7</button>
         </div>
     </section>
+
+    <!-- 雙人對戰房間 -->
+    <div id="modal-duel" role="dialog" aria-modal="true" aria-labelledby="duel-title" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 border-2 border-indigo-500/40 shadow-2xl text-left">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+                <h3 id="duel-title" class="text-xl font-black text-indigo-300">⚔️ 雙人即時對戰</h3>
+                <button id="btn-close-duel" aria-label="關閉對戰房間" class="text-slate-300 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div id="duel-setup" class="space-y-3">
+                <button id="btn-create-duel" class="duel-action w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 rounded-xl">➕ 建立新房間</button>
+                <div class="flex gap-2">
+                    <input id="duel-code-input" type="text" maxlength="6" autocomplete="off" placeholder="輸入 6 位房間碼" class="flex-1 bg-slate-900/90 text-center font-black text-xl text-cyan-300 px-3 py-3 rounded-xl border-2 border-slate-600 focus:border-cyan-400 focus:outline-none">
+                    <button id="btn-join-duel" class="duel-action bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-5 py-3 rounded-xl">🚪 加入</button>
+                </div>
+            </div>
+            <div id="duel-room" class="hidden space-y-3">
+                <div class="bg-slate-900/80 rounded-xl p-4 text-center border border-slate-700">
+                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">房間碼</div>
+                    <div id="duel-room-code" class="text-3xl font-black text-amber-300 tracking-widest">------</div>
+                </div>
+                <div id="duel-players" class="space-y-2 text-sm"></div>
+                <button id="btn-duel-ready" class="duel-action hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl">⚔️ 兩位玩家已到齊・開始對戰</button>
+            </div>
+            <div id="duel-status" role="status" class="text-center text-sm text-slate-400 mt-3">建立房間，或者輸入朋友嘅房間碼。</div>
+            <button id="btn-leave-duel" class="duel-action hidden w-full bg-slate-700 hover:bg-slate-600 text-white font-black py-3 rounded-xl mt-3">← 離開房間</button>
+        </div>
+    </div>
 
     <!-- 5. EXPLANATION FEEDBACK MODAL (TUTORIAL MODE) -->
     <div id="modal-feedback" role="dialog" aria-modal="true" aria-labelledby="fb-title" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
@@ -563,6 +613,98 @@
         // Built from questions.json; do not edit the generated array here.
         const QUESTION_DATABASE = [{"id":1,"sectionId":"SECTION_1","species":"S8","target":"S","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"自由單質分子中，原子的氧化數一律為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span><sub>8</sub> 中的 S"},{"id":2,"sectionId":"SECTION_1","species":"O2","target":"O","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"氧氣單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>2</sub> 中的 O"},{"id":3,"sectionId":"SECTION_1","species":"O3 (臭氧)","target":"O","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"同素異形體單質分子氧化數均為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>3</sub> <span class='text-sm text-slate-400 font-bold'>（臭氧）</span> 中的 O"},{"id":4,"sectionId":"SECTION_1","species":"P4 (白磷)","target":"P","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"白磷單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>P</span><sub>4</sub> <span class='text-sm text-slate-400 font-bold'>（白磷）</span> 中的 P"},{"id":5,"sectionId":"SECTION_1","species":"C60 (富勒烯)","target":"C","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"碳同素異形體單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>C</span><sub>60</sub> <span class='text-sm text-slate-400 font-bold'>（富勒烯）</span> 中的 C"},{"id":6,"sectionId":"SECTION_1","species":"N2","target":"N","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"氮氣單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span><sub>2</sub> 中的 N"},{"id":7,"sectionId":"SECTION_1","species":"Cl2","target":"Cl","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"氯氣單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span><sub>2</sub> 中的 Cl"},{"id":8,"sectionId":"SECTION_1","species":"Br2","target":"Br","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"溴單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Br</span><sub>2</sub> 中的 Br"},{"id":9,"sectionId":"SECTION_1","species":"I2","target":"I","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"碘單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>I</span><sub>2</sub> 中的 I"},{"id":10,"sectionId":"SECTION_1","species":"H2","target":"H","answer":"0","ruleId":"RULE_A_ELEMENT","skillId":"ELEMENTAL_ZERO","ruleLabel":"Rule A（單質）","explanation":"氫氣單質氧化數為 0。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>H</span><sub>2</sub> 中的 H"},{"id":11,"sectionId":"SECTION_1","species":"Fe3+","target":"Fe","answer":"+3","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"單原子離子氧化數等於其電荷數 (+3)。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span><sup>3+</sup> 中的 Fe"},{"id":12,"sectionId":"SECTION_1","species":"Fe2+","target":"Fe","answer":"+2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"單原子離子氧化數等於其電荷數 (+2)。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span><sup>2+</sup> 中的 Fe"},{"id":13,"sectionId":"SECTION_1","species":"Cu2+","target":"Cu","answer":"+2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"單原子離子氧化數等於其電荷數 (+2)。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span><sup>2+</sup> 中的 Cu"},{"id":14,"sectionId":"SECTION_1","species":"Cu+","target":"Cu","answer":"+1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"單原子離子氧化數等於其電荷數 (+1)。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span><sup>+</sup> 中的 Cu"},{"id":15,"sectionId":"SECTION_1","species":"Na+","target":"Na","answer":"+1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"鹼金屬單原子離子氧化數為 +1。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Na</span><sup>+</sup> 中的 Na"},{"id":16,"sectionId":"SECTION_1","species":"Mg2+","target":"Mg","answer":"+2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"鹼土金屬單原子離子氧化數為 +2。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mg</span><sup>2+</sup> 中的 Mg"},{"id":17,"sectionId":"SECTION_1","species":"Al3+","target":"Al","answer":"+3","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"鋁單原子離子氧化數為 +3。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Al</span><sup>3+</sup> 中的 Al"},{"id":18,"sectionId":"SECTION_1","species":"Cl-","target":"Cl","answer":"-1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"氯離子氧化數為 -1。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span><sup>-</sup> 中的 Cl"},{"id":19,"sectionId":"SECTION_1","species":"Br-","target":"Br","answer":"-1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"溴離子氧化數為 -1。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Br</span><sup>-</sup> 中的 Br"},{"id":20,"sectionId":"SECTION_1","species":"I-","target":"I","answer":"-1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"碘離子氧化數為 -1。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>I</span><sup>-</sup> 中的 I"},{"id":21,"sectionId":"SECTION_1","species":"S2-","target":"S","answer":"-2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"硫化物離子氧化數為 -2。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span><sup>2-</sup> 中的 S"},{"id":22,"sectionId":"SECTION_1","species":"N3-","target":"N","answer":"-3","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"氮化物離子氧化數為 -3。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span><sup>3-</sup> 中的 N"},{"id":23,"sectionId":"SECTION_1","species":"Zn2+","target":"Zn","answer":"+2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"鋅離子氧化數為 +2。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Zn</span><sup>2+</sup> 中的 Zn"},{"id":24,"sectionId":"SECTION_1","species":"Ag+","target":"Ag","answer":"+1","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"銀離子氧化數為 +1。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ag</span><sup>+</sup> 中的 Ag"},{"id":25,"sectionId":"SECTION_1","species":"Pb2+","target":"Pb","answer":"+2","ruleId":"RULE_B_MONATOMIC","skillId":"ION_CHARGE","ruleLabel":"Rule B（單原子離子）","explanation":"鉛(II)離子氧化數為 +2。","difficulty":1,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Pb</span><sup>2+</sup> 中的 Pb"},{"id":26,"sectionId":"SECTION_2","species":"MgCl2","target":"Mg","answer":"+2","ruleId":"RULE_C_GROUP_METAL","skillId":"GROUP_II_METAL","ruleLabel":"Rule C（第II族金屬）","explanation":"化合物中 第 II 族金屬必為 +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mg</span>Cl<sub>2</sub> 中的 Mg"},{"id":27,"sectionId":"SECTION_2","species":"Al2O3","target":"Al","answer":"+3","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2x + 3(-2) = 0 → 2x = +6 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Al</span><sub>2</sub>O<sub>3</sub> 中的 Al"},{"id":28,"sectionId":"SECTION_2","species":"Fe2O3","target":"Fe","answer":"+3","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2x + 3(-2) = 0 → 2x = +6 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span><sub>2</sub>O<sub>3</sub> 中的 Fe"},{"id":29,"sectionId":"SECTION_2","species":"FeO","target":"Fe","answer":"+2","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + (-2) = 0 → x = +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>O 中的 Fe"},{"id":30,"sectionId":"SECTION_2","species":"SF6","target":"S","answer":"+6","ruleId":"RULE_D_FLUORINE","skillId":"FLUORINE_MINUS_ONE","ruleLabel":"Rule D（氟為 -1）","explanation":"F 必為 -1 → x + 6(-1) = 0 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>F<sub>6</sub> 中的 S"},{"id":31,"sectionId":"SECTION_2","species":"PCl3","target":"P","answer":"+3","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 3(-1) = 0 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>P</span>Cl<sub>3</sub> 中的 P"},{"id":32,"sectionId":"SECTION_2","species":"PCl5","target":"P","answer":"+5","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 5(-1) = 0 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>P</span>Cl<sub>5</sub> 中的 P"},{"id":33,"sectionId":"SECTION_2","species":"SO2","target":"S","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 2(-2) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>2</sub> 中的 S"},{"id":34,"sectionId":"SECTION_2","species":"SO3","target":"S","answer":"+6","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 3(-2) = 0 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>3</sub> 中的 S"},{"id":35,"sectionId":"SECTION_2","species":"H2S","target":"S","answer":"-2","ruleId":"RULE_E_HYDROGEN","skillId":"HYDROGEN_PLUS_ONE","ruleLabel":"Rule E（氫通常為 +1）","explanation":"2(+1) + x = 0 → x = -2。","difficulty":2,"formula":"H<sub>2</sub><span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span> 中的 S"},{"id":36,"sectionId":"SECTION_2","species":"NO","target":"N","answer":"+2","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + (-2) = 0 → x = +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>O 中的 N"},{"id":37,"sectionId":"SECTION_2","species":"NO2","target":"N","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 2(-2) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>O<sub>2</sub> 中的 N"},{"id":38,"sectionId":"SECTION_2","species":"N2O","target":"N","answer":"+1","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"N 的平均氧化數：2x + (-2) = 0 → 2x = +2 → x = +1。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span><sub>2</sub>O 中的 N"},{"id":39,"sectionId":"SECTION_2","species":"N2O5","target":"N","answer":"+5","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2x + 5(-2) = 0 → 2x = +10 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span><sub>2</sub>O<sub>5</sub> 中的 N"},{"id":40,"sectionId":"SECTION_2","species":"NH3","target":"N","answer":"-3","ruleId":"RULE_E_HYDROGEN","skillId":"HYDROGEN_PLUS_ONE","ruleLabel":"Rule E（氫通常為 +1）","explanation":"x + 3(+1) = 0 → x = -3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>H<sub>3</sub> 中的 N"},{"id":41,"sectionId":"SECTION_2","species":"CO","target":"C","answer":"+2","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + (-2) = 0 → x = +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>C</span>O 中的 C"},{"id":42,"sectionId":"SECTION_2","species":"CO2","target":"C","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 2(-2) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>C</span>O<sub>2</sub> 中的 C"},{"id":43,"sectionId":"SECTION_2","species":"Cu2O","target":"Cu","answer":"+1","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2x + (-2) = 0 → 2x = +2 → x = +1。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span><sub>2</sub>O 中的 Cu"},{"id":44,"sectionId":"SECTION_2","species":"CuO","target":"Cu","answer":"+2","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + (-2) = 0 → x = +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span>O 中的 Cu"},{"id":45,"sectionId":"SECTION_2","species":"PbO2","target":"Pb","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 2(-2) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Pb</span>O<sub>2</sub> 中的 Pb"},{"id":46,"sectionId":"SECTION_2","species":"MnO2","target":"Mn","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 2(-2) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mn</span>O<sub>2</sub> 中的 Mn"},{"id":47,"sectionId":"SECTION_2","species":"TiCl4","target":"Ti","answer":"+4","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 4(-1) = 0 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ti</span>Cl<sub>4</sub> 中的 Ti"},{"id":48,"sectionId":"SECTION_2","species":"Ag2O","target":"Ag","answer":"+1","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2x + (-2) = 0 → 2x = +2 → x = +1。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ag</span><sub>2</sub>O 中的 Ag"},{"id":49,"sectionId":"SECTION_2","species":"ZnS","target":"Zn","answer":"+2","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"S 為 -2 → x + (-2) = 0 → x = +2。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Zn</span>S 中的 Zn"},{"id":50,"sectionId":"SECTION_2","species":"ICl3","target":"I","answer":"+3","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"Cl 為 -1 → x + 3(-1) = 0 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>I</span>Cl<sub>3</sub> 中的 I"},{"id":51,"sectionId":"SECTION_3","species":"H2O2","target":"O","answer":"-1","ruleId":"RULE_E_PEROXIDE","skillId":"PEROXIDE_OXYGEN","ruleLabel":"Rule E（過氧化物特例）","explanation":"過氧化物中 O 的氧化數是 -1 而非 -2。","difficulty":3,"formula":"H<sub>2</sub><span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>2</sub> 中的 O"},{"id":52,"sectionId":"SECTION_3","species":"Na2O2","target":"O","answer":"-1","ruleId":"RULE_E_PEROXIDE","skillId":"PEROXIDE_OXYGEN","ruleLabel":"Rule E（過氧化物特例）","explanation":"過氧化鈉中 O 的氧化數為 -1。","difficulty":3,"formula":"Na<sub>2</sub><span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>2</sub> 中的 O"},{"id":53,"sectionId":"SECTION_3","species":"BaO2","target":"O","answer":"-1","ruleId":"RULE_E_PEROXIDE","skillId":"PEROXIDE_OXYGEN","ruleLabel":"Rule E（過氧化物特例）","explanation":"過氧化鋇中 O 的氧化數為 -1。","difficulty":3,"formula":"Ba<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>2</sub> 中的 O"},{"id":54,"sectionId":"SECTION_3","species":"NaH","target":"H","answer":"-1","ruleId":"RULE_E_METAL_HYDRIDE","skillId":"METAL_HYDRIDE","ruleLabel":"Rule E（金屬氫化物特例）","explanation":"與活潑金屬結合時，H 氧化數轉為 -1。","difficulty":3,"formula":"Na<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>H</span> 中的 H"},{"id":55,"sectionId":"SECTION_3","species":"KH","target":"H","answer":"-1","ruleId":"RULE_E_METAL_HYDRIDE","skillId":"METAL_HYDRIDE","ruleLabel":"Rule E（金屬氫化物特例）","explanation":"氫化鉀中 H 氧化數為 -1。","difficulty":3,"formula":"K<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>H</span> 中的 H"},{"id":56,"sectionId":"SECTION_3","species":"CaH2","target":"H","answer":"-1","ruleId":"RULE_E_METAL_HYDRIDE","skillId":"METAL_HYDRIDE","ruleLabel":"Rule E（金屬氫化物特例）","explanation":"氫化鈣中 H 氧化數為 -1。","difficulty":3,"formula":"Ca<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>H</span><sub>2</sub> 中的 H"},{"id":57,"sectionId":"SECTION_3","species":"LiH","target":"H","answer":"-1","ruleId":"RULE_E_METAL_HYDRIDE","skillId":"METAL_HYDRIDE","ruleLabel":"Rule E（金屬氫化物特例）","explanation":"氫化鋰中 H 氧化數為 -1。","difficulty":3,"formula":"Li<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>H</span> 中的 H"},{"id":58,"sectionId":"SECTION_3","species":"LiAlH4","target":"Al","answer":"+3","ruleId":"RULE_E_COMPLEX_HYDRIDE","skillId":"COMPLEX_HYDRIDE","ruleLabel":"Rule E（複合氫化物）","explanation":"Li(+1) + Al(x) + 4(-1) = 0 → x = +3。","difficulty":3,"formula":"Li<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Al</span>H<sub>4</sub> 中的 Al"},{"id":59,"sectionId":"SECTION_3","species":"NaBH4","target":"B","answer":"+3","ruleId":"RULE_E_COMPLEX_HYDRIDE","skillId":"COMPLEX_HYDRIDE","ruleLabel":"Rule E（複合氫化物）","explanation":"Na(+1) + B(x) + 4(-1) = 0 → x = +3。","difficulty":3,"formula":"Na<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>B</span>H<sub>4</sub> 中的 B"},{"id":60,"sectionId":"SECTION_3","species":"OF2","target":"F","answer":"-1","ruleId":"RULE_D_FLUORINE","skillId":"FLUORINE_MINUS_ONE","ruleLabel":"Rule D（氟為 -1）","explanation":"化合物中 F 的氧化數必為 -1。","difficulty":3,"formula":"O<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>F</span><sub>2</sub> 中的 F"},{"id":61,"sectionId":"SECTION_3","species":"OF2","target":"O","answer":"+2","ruleId":"RULE_D_E_OXYGEN_FLUORIDE","skillId":"OXYGEN_FLUORIDE","ruleLabel":"Rule D／E（氧氟化物特例）","explanation":"F 強制為 -1 → x + 2(-1) = 0 → x = +2。","difficulty":3,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span>F<sub>2</sub> 中的 O"},{"id":62,"sectionId":"SECTION_3","species":"O2F2","target":"O","answer":"+1","ruleId":"RULE_D_E_OXYGEN_FLUORIDE","skillId":"OXYGEN_FLUORIDE","ruleLabel":"Rule D／E（氧氟化物特例）","explanation":"2x + 2(-1) = 0 → 2x = +2 → x = +1。","difficulty":3,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>O</span><sub>2</sub>F<sub>2</sub> 中的 O"},{"id":63,"sectionId":"SECTION_3","species":"IF7","target":"I","answer":"+7","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 7(-1) = 0 → x = +7。","difficulty":3,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>I</span>F<sub>7</sub> 中的 I"},{"id":64,"sectionId":"SECTION_3","species":"BrF5","target":"Br","answer":"+5","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 5(-1) = 0 → x = +5。","difficulty":3,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Br</span>F<sub>5</sub> 中的 Br"},{"id":65,"sectionId":"SECTION_3","species":"ClF3","target":"Cl","answer":"+3","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"x + 3(-1) = 0 → x = +3。","difficulty":3,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span>F<sub>3</sub> 中的 Cl"},{"id":66,"sectionId":"SECTION_4","species":"SO4(2-)","target":"S","answer":"+6","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -2 → x - 8 = -2 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>4</sub><sup>2-</sup> 中的 S"},{"id":67,"sectionId":"SECTION_4","species":"SO3(2-)","target":"S","answer":"+4","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -2 → x - 6 = -2 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>3</sub><sup>2-</sup> 中的 S"},{"id":68,"sectionId":"SECTION_4","species":"NO3(-)","target":"N","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -1 → x - 6 = -1 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>O<sub>3</sub><sup>-</sup> 中的 N"},{"id":69,"sectionId":"SECTION_4","species":"NO2(-)","target":"N","answer":"+3","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 2(-2) = -1 → x - 4 = -1 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>O<sub>2</sub><sup>-</sup> 中的 N"},{"id":70,"sectionId":"SECTION_4","species":"CO3(2-)","target":"C","answer":"+4","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -2 → x - 6 = -2 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>C</span>O<sub>3</sub><sup>2-</sup> 中的 C"},{"id":71,"sectionId":"SECTION_4","species":"HCO3(-)","target":"C","answer":"+4","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"1(+1) + x + 3(-2) = -1 → x - 5 = -1 → x = +4。","difficulty":2,"formula":"H<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>C</span>O<sub>3</sub><sup>-</sup> 中的 C"},{"id":72,"sectionId":"SECTION_4","species":"PO4(3-)","target":"P","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -3 → x - 8 = -3 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>P</span>O<sub>4</sub><sup>3-</sup> 中的 P"},{"id":73,"sectionId":"SECTION_4","species":"HPO4(2-)","target":"P","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"1(+1) + x + 4(-2) = -2 → x - 7 = -2 → x = +5。","difficulty":2,"formula":"H<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>P</span>O<sub>4</sub><sup>2-</sup> 中的 P"},{"id":74,"sectionId":"SECTION_4","species":"NH4(+)","target":"N","answer":"-3","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(+1) = +1 → x + 4 = +1 → x = -3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>N</span>H<sub>4</sub><sup>+</sup> 中的 N"},{"id":75,"sectionId":"SECTION_4","species":"ClO(-)","target":"Cl","answer":"+1","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + (-2) = -1 → x = +1。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span>O<sup>-</sup> 中的 Cl"},{"id":76,"sectionId":"SECTION_4","species":"ClO2(-)","target":"Cl","answer":"+3","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 2(-2) = -1 → x - 4 = -1 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span>O<sub>2</sub><sup>-</sup> 中的 Cl"},{"id":77,"sectionId":"SECTION_4","species":"ClO3(-)","target":"Cl","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -1 → x - 6 = -1 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span>O<sub>3</sub><sup>-</sup> 中的 Cl"},{"id":78,"sectionId":"SECTION_4","species":"ClO4(-)","target":"Cl","answer":"+7","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -1 → x - 8 = -1 → x = +7。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cl</span>O<sub>4</sub><sup>-</sup> 中的 Cl"},{"id":79,"sectionId":"SECTION_4","species":"BrO3(-)","target":"Br","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -1 → x - 6 = -1 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Br</span>O<sub>3</sub><sup>-</sup> 中的 Br"},{"id":80,"sectionId":"SECTION_4","species":"IO3(-)","target":"I","answer":"+5","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -1 → x - 6 = -1 → x = +5。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>I</span>O<sub>3</sub><sup>-</sup> 中的 I"},{"id":81,"sectionId":"SECTION_4","species":"CrO4(2-)","target":"Cr","answer":"+6","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -2 → x - 8 = -2 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span>O<sub>4</sub><sup>2-</sup> 中的 Cr"},{"id":82,"sectionId":"SECTION_4","species":"Cr2O7(2-)","target":"Cr","answer":"+6","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"2x + 7(-2) = -2 → 2x = +12 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span><sub>2</sub>O<sub>7</sub><sup>2-</sup> 中的 Cr"},{"id":83,"sectionId":"SECTION_4","species":"MnO4(-)","target":"Mn","answer":"+7","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -1 → x - 8 = -1 → x = +7。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mn</span>O<sub>4</sub><sup>-</sup> 中的 Mn"},{"id":84,"sectionId":"SECTION_4","species":"MnO4(2-)","target":"Mn","answer":"+6","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 4(-2) = -2 → x - 8 = -2 → x = +6。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mn</span>O<sub>4</sub><sup>2-</sup> 中的 Mn"},{"id":85,"sectionId":"SECTION_4","species":"KMnO4","target":"Mn","answer":"+7","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"1(+1) + x + 4(-2) = 0 → x - 7 = 0 → x = +7。","difficulty":2,"formula":"K<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Mn</span>O<sub>4</sub> 中的 Mn"},{"id":86,"sectionId":"SECTION_4","species":"K2Cr2O7","target":"Cr","answer":"+6","ruleId":"RULE_F_NEUTRAL","skillId":"NEUTRAL_SUM","ruleLabel":"Rule F（中性化合物）","explanation":"2(+1) + 2x + 7(-2) = 0 → 2x = +12 → x = +6。","difficulty":2,"formula":"K<sub>2</sub><span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span><sub>2</sub>O<sub>7</sub> 中的 Cr"},{"id":87,"sectionId":"SECTION_4","species":"HSO4(-)","target":"S","answer":"+6","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"1(+1) + x + 4(-2) = -1 → x - 7 = -1 → x = +6。","difficulty":2,"formula":"H<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>4</sub><sup>-</sup> 中的 S"},{"id":88,"sectionId":"SECTION_4","species":"HSO3(-)","target":"S","answer":"+4","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"1(+1) + x + 3(-2) = -1 → x - 5 = -1 → x = +4。","difficulty":2,"formula":"H<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>S</span>O<sub>3</sub><sup>-</sup> 中的 S"},{"id":89,"sectionId":"SECTION_4","species":"SiO3(2-)","target":"Si","answer":"+4","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -2 → x - 6 = -2 → x = +4。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Si</span>O<sub>3</sub><sup>2-</sup> 中的 Si"},{"id":90,"sectionId":"SECTION_4","species":"BO3(3-)","target":"B","answer":"+3","ruleId":"RULE_G_POLYATOMIC","skillId":"POLYATOMIC_SUM","ruleLabel":"Rule G（多原子離子）","explanation":"x + 3(-2) = -3 → x - 6 = -3 → x = +3。","difficulty":2,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>B</span>O<sub>3</sub><sup>3-</sup> 中的 B"},{"id":91,"sectionId":"SECTION_5","species":"[Co(H2O)4Cl2]+","target":"Co","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0，Cl⁻ 為 -1：x + 4(0) + 2(-1) = +1 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Co</span>(H<sub>2</sub>O)<sub>4</sub>Cl<sub>2</sub>]<sup>+</sup> 中的 Co"},{"id":92,"sectionId":"SECTION_5","species":"[Co(NH3)6]3+","target":"Co","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為中性配體 (0)：x + 6(0) = +3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Co</span>(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> 中的 Co"},{"id":93,"sectionId":"SECTION_5","species":"[Co(NH3)5Cl]2+","target":"Co","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"x + 5(0) + (-1) = +2 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Co</span>(NH<sub>3</sub>)<sub>5</sub>Cl]<sup>2+</sup> 中的 Co"},{"id":94,"sectionId":"SECTION_5","species":"[CoCl4]2-","target":"Co","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"x + 4(-1) = -2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Co</span>Cl<sub>4</sub>]<sup>2-</sup> 中的 Co"},{"id":95,"sectionId":"SECTION_5","species":"[Fe(H2O)6]3+","target":"Fe","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0：x + 6(0) = +3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> 中的 Fe"},{"id":96,"sectionId":"SECTION_5","species":"[Fe(H2O)6]2+","target":"Fe","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0：x + 6(0) = +2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup> 中的 Fe"},{"id":97,"sectionId":"SECTION_5","species":"[Fe(CN)6]3-","target":"Fe","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"CN⁻ 電荷為 -1：x + 6(-1) = -3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(CN)<sub>6</sub>]<sup>3-</sup> 中的 Fe"},{"id":98,"sectionId":"SECTION_5","species":"[Fe(CN)6]4-","target":"Fe","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"CN⁻ 電荷為 -1：x + 6(-1) = -4 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(CN)<sub>6</sub>]<sup>4-</sup> 中的 Fe"},{"id":99,"sectionId":"SECTION_5","species":"[Fe(SCN)]2+","target":"Fe","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"SCN⁻ 電荷為 -1：x + (-1) = +2 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(SCN)]<sup>2+</sup> 中的 Fe"},{"id":100,"sectionId":"SECTION_5","species":"Fe(CO)5","target":"Fe","answer":"0","ruleId":"RULE_COMPLEX_NEUTRAL","skillId":"NEUTRAL_COMPLEX_LIGAND","ruleLabel":"中性錯合物（配體電荷法）","explanation":"CO 為中性配體 (0)：x + 5(0) = 0 → x = 0。","difficulty":4,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(CO)<sub>5</sub> 中的 Fe"},{"id":101,"sectionId":"SECTION_5","species":"[Cu(NH3)4]2+","target":"Cu","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為 0：x + 4(0) = +2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span>(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup> 中的 Cu"},{"id":102,"sectionId":"SECTION_5","species":"[CuCl4]2-","target":"Cu","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"x + 4(-1) = -2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span>Cl<sub>4</sub>]<sup>2-</sup> 中的 Cu"},{"id":103,"sectionId":"SECTION_5","species":"[Cu(H2O)6]2+","target":"Cu","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0：x + 6(0) = +2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cu</span>(H<sub>2</sub>O)<sub>6</sub>]<sup>2+</sup> 中的 Cu"},{"id":104,"sectionId":"SECTION_5","species":"[Ni(NH3)6]2+","target":"Ni","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為 0：x + 6(0) = +2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ni</span>(NH<sub>3</sub>)<sub>6</sub>]<sup>2+</sup> 中的 Ni"},{"id":105,"sectionId":"SECTION_5","species":"[Ni(CN)4]2-","target":"Ni","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"CN⁻ 電荷為 -1：x + 4(-1) = -2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ni</span>(CN)<sub>4</sub>]<sup>2-</sup> 中的 Ni"},{"id":106,"sectionId":"SECTION_5","species":"Ni(CO)4","target":"Ni","answer":"0","ruleId":"RULE_COMPLEX_NEUTRAL","skillId":"NEUTRAL_COMPLEX_LIGAND","ruleLabel":"中性錯合物（配體電荷法）","explanation":"CO 為 0：x + 4(0) = 0 → x = 0。","difficulty":4,"formula":"<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ni</span>(CO)<sub>4</sub> 中的 Ni"},{"id":107,"sectionId":"SECTION_5","species":"[Cr(H2O)6]3+","target":"Cr","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0：x + 6(0) = +3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span>(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> 中的 Cr"},{"id":108,"sectionId":"SECTION_5","species":"[Cr(H2O)4Cl2]+","target":"Cr","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"x + 4(0) + 2(-1) = +1 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span>(H<sub>2</sub>O)<sub>4</sub>Cl<sub>2</sub>]<sup>+</sup> 中的 Cr"},{"id":109,"sectionId":"SECTION_5","species":"[Cr(OH)4]-","target":"Cr","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"OH⁻ 電荷為 -1：x + 4(-1) = -1 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span>(OH)<sub>4</sub>]<sup>-</sup> 中的 Cr"},{"id":110,"sectionId":"SECTION_5","species":"[Cr(NH3)6]3+","target":"Cr","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為 0：x + 6(0) = +3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Cr</span>(NH<sub>3</sub>)<sub>6</sub>]<sup>3+</sup> 中的 Cr"},{"id":111,"sectionId":"SECTION_5","species":"[Ag(NH3)2]+","target":"Ag","answer":"+1","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為 0：x + 2(0) = +1 → x = +1。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ag</span>(NH<sub>3</sub>)<sub>2</sub>]<sup>+</sup> 中的 Ag"},{"id":112,"sectionId":"SECTION_5","species":"[Ag(CN)2]-","target":"Ag","answer":"+1","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"CN⁻ 電荷為 -1：x + 2(-1) = -1 → x = +1。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Ag</span>(CN)<sub>2</sub>]<sup>-</sup> 中的 Ag"},{"id":113,"sectionId":"SECTION_5","species":"[Zn(NH3)4]2+","target":"Zn","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"NH₃ 為 0：x + 4(0) = +2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Zn</span>(NH<sub>3</sub>)<sub>4</sub>]<sup>2+</sup> 中的 Zn"},{"id":114,"sectionId":"SECTION_5","species":"[Zn(OH)4]2-","target":"Zn","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"OH⁻ 電荷為 -1：x + 4(-1) = -2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Zn</span>(OH)<sub>4</sub>]<sup>2-</sup> 中的 Zn"},{"id":115,"sectionId":"SECTION_5","species":"[Al(OH)4]-","target":"Al","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"OH⁻ 電荷為 -1：x + 4(-1) = -1 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Al</span>(OH)<sub>4</sub>]<sup>-</sup> 中的 Al"},{"id":116,"sectionId":"SECTION_5","species":"[PtCl4]2-","target":"Pt","answer":"+2","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"Cl⁻ 電荷為 -1：x + 4(-1) = -2 → x = +2。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Pt</span>Cl<sub>4</sub>]<sup>2-</sup> 中的 Pt"},{"id":117,"sectionId":"SECTION_5","species":"[PtCl6]2-","target":"Pt","answer":"+4","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"Cl⁻ 電荷為 -1：x + 6(-1) = -2 → x = +4。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Pt</span>Cl<sub>6</sub>]<sup>2-</sup> 中的 Pt"},{"id":118,"sectionId":"SECTION_5","species":"[AuCl4]-","target":"Au","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"Cl⁻ 電荷為 -1：x + 4(-1) = -1 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Au</span>Cl<sub>4</sub>]<sup>-</sup> 中的 Au"},{"id":119,"sectionId":"SECTION_5","species":"[Fe(C2O4)3]3-","target":"Fe","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"草酸根 C2O4(2-) 電荷為 -2：x + 3(-2) = -3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>Fe</span>(C<sub>2</sub>O<sub>4</sub>)<sub>3</sub>]<sup>3-</sup> 中的 Fe"},{"id":120,"sectionId":"SECTION_5","species":"[V(H2O)6]3+","target":"V","answer":"+3","ruleId":"RULE_COMPLEX_ION","skillId":"COMPLEX_ION_LIGAND","ruleLabel":"錯離子（配體電荷法）","explanation":"H₂O 為 0：x + 6(0) = +3 → x = +3。","difficulty":4,"formula":"[<span class='text-amber-400 underline font-black decoration-2 underline-offset-4'>V</span>(H<sub>2</sub>O)<sub>6</sub>]<sup>3+</sup> 中的 V"}];
 
+        const clone = value => structuredClone(value);
+
+const DuelCore = {
+    createRoom(code, host, questionIds, now = Date.now()) {
+        if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) throw new Error('invalid room code');
+        if (!questionIds.length) throw new Error('questions required');
+        return {
+            code, hostId: host.id, status: 'waiting', questionIds: [...questionIds], roundIndex: -1,
+            players: { [host.id]: { ...host, hp: 5 } }, round: null, winnerId: null, updatedAt: now
+        };
+    },
+    joinRoom(room, guest, now = Date.now()) {
+        if (room.status !== 'waiting') throw new Error('room not waiting');
+        if (Object.keys(room.players).length !== 1) throw new Error('room full');
+        const next = clone(room);
+        next.players[guest.id] = { ...guest, hp: 5 };
+        next.updatedAt = now;
+        return next;
+    },
+    startRoom(room, playerId, now = Date.now()) {
+        if (playerId !== room.hostId) throw new Error('host only');
+        if (room.status !== 'waiting' || Object.keys(room.players).length !== 2) throw new Error('two players required');
+        const next = clone(room);
+        next.status = 'playing';
+        next.roundIndex = 0;
+        next.round = { questionId: next.questionIds[0], winnerId: null, submissions: {}, resolved: false, startedAt: now };
+        next.updatedAt = now;
+        return next;
+    },
+    answer(room, playerId, correct, now = Date.now()) {
+        if (room.status !== 'playing') throw new Error('room not playing');
+        if (!room.players[playerId]) throw new Error('unknown player');
+        if (room.round.resolved) throw new Error('round resolved');
+        if (playerId in (room.round.submissions || {})) throw new Error('already answered');
+        const next = clone(room);
+        next.round.submissions ||= {};
+        next.round.submissions[playerId] = !!correct;
+        const opponentId = Object.keys(next.players).find(id => id !== playerId);
+        if (correct) {
+            next.round.winnerId = playerId;
+            next.round.resolved = true;
+            next.players[opponentId].hp--;
+        } else {
+            next.players[playerId].hp--;
+            next.round.resolved = next.players[playerId].hp === 0 || Object.keys(next.round.submissions).length === 2;
+        }
+        if (Object.values(next.players).some(player => player.hp <= 0) || (next.round.resolved && next.roundIndex + 1 >= next.questionIds.length)) {
+            next.status = 'finished';
+            const ids = Object.keys(next.players);
+            next.winnerId = next.players[ids[0]].hp === next.players[ids[1]].hp
+                ? null
+                : ids.reduce((best, id) => next.players[id].hp > next.players[best].hp ? id : best);
+        }
+        next.updatedAt = now;
+        return next;
+    },
+    expireRound(room, playerId, now = Date.now()) {
+        if (playerId !== room.hostId) throw new Error('host only');
+        if (room.status !== 'playing' || room.round.resolved) throw new Error('round resolved');
+        const next = clone(room);
+        for (const player of Object.values(next.players)) player.hp--;
+        next.round.resolved = true;
+        if (Object.values(next.players).some(player => player.hp <= 0) || next.roundIndex + 1 >= next.questionIds.length) {
+            next.status = 'finished';
+            const ids = Object.keys(next.players);
+            next.winnerId = next.players[ids[0]].hp === next.players[ids[1]].hp
+                ? null
+                : ids.reduce((best, id) => next.players[id].hp > next.players[best].hp ? id : best);
+        }
+        next.updatedAt = now;
+        return next;
+    },
+    nextRound(room, playerId, now = Date.now()) {
+        if (playerId !== room.hostId) throw new Error('host only');
+        if (room.status !== 'playing' || !room.round.resolved) throw new Error('round not resolved');
+        const next = clone(room);
+        if (next.roundIndex + 1 >= next.questionIds.length) {
+            next.status = 'finished';
+            const ids = Object.keys(next.players);
+            next.winnerId = next.players[ids[0]].hp === next.players[ids[1]].hp
+                ? null
+                : ids.reduce((best, id) => next.players[id].hp > next.players[best].hp ? id : best);
+        } else {
+            next.roundIndex++;
+            next.round = { questionId: next.questionIds[next.roundIndex], winnerId: null, submissions: {}, resolved: false, startedAt: now };
+        }
+        next.updatedAt = now;
+        return next;
+    }
+};
+
+
         (function installV3() {
     const SECTION_META = {
         ALL: { label: "全範圍", short: "全部範圍" },
@@ -578,6 +720,15 @@
     };
     // 🏆 即時龍虎榜 Google Apps Script Web App URL
     const HOF_API_URL = "https://script.google.com/macros/s/AKfycbzxAyEahDYSSFerzsDoYPLZB_ng_HrqzUnae5lv3BalDVAvcmVukWEyEuZajsICf2jW/exec";
+    const FIREBASE_CONFIG = {
+        apiKey: "AIzaSyCP7-ZsI05UTFdwIYncLHwEhDnyhMXAXTI",
+        authDomain: "calfss-chem-duel.firebaseapp.com",
+        databaseURL: "https://calfss-chem-duel-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "calfss-chem-duel",
+        appId: "1:585353497642:web:dd1876ac6d2fdecbec8753"
+    };
+    const DUEL_QUESTION_COUNT = 10;
+    const DUEL_ROUND_MS = 15000;
     const HERO_TIME_MS = {
         "🧙‍♂️": 12000,
         "🧙‍♀️": 15000,
@@ -633,6 +784,14 @@
     let activeModal = null;
     let modalReturnFocus = null;
     let memoryRecords = [];
+    let duelBackend = null;
+    let duelRoom = null;
+    let duelCode = "";
+    let duelUnsubscribe = null;
+    let duelRoundTimer = null;
+    let duelAdvanceTimer = null;
+    let duelRenderedRound = null;
+    let duelFinishedShown = false;
 
     const $ = id => document.getElementById(id);
     const elements = {
@@ -662,6 +821,15 @@
         feedback: $("modal-feedback"),
         rules: $("modal-rules"),
         history: $("modal-leaderboard"),
+        duel: $("modal-duel"),
+        duelSetup: $("duel-setup"),
+        duelRoom: $("duel-room"),
+        duelCode: $("duel-room-code"),
+        duelCodeInput: $("duel-code-input"),
+        duelPlayers: $("duel-players"),
+        duelStatus: $("duel-status"),
+        duelReady: $("btn-duel-ready"),
+        duelLeave: $("btn-leave-duel"),
         results: $("modal-results"),
         settings: $("modal-settings"),
         timerLive: $("timer-live")
@@ -740,6 +908,335 @@
             [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
         }
         return result;
+    }
+
+    async function makeDuelBackend() {
+        const configured = Object.values(FIREBASE_CONFIG).every(value => value && !value.startsWith("PASTE_"));
+        if (!configured) {
+            if (!["localhost", "127.0.0.1"].includes(location.hostname)) throw new Error("Firebase 尚未設定");
+            const uid = crypto.randomUUID();
+            const channel = new BroadcastChannel("oxidation-duels-v1");
+            const listeners = new Map();
+            const key = code => `oxidation_duel_${code}`;
+            const read = code => JSON.parse(localStorage.getItem(key(code)) || "null");
+            const publish = (code, value) => {
+                value === null ? localStorage.removeItem(key(code)) : localStorage.setItem(key(code), JSON.stringify(value));
+                listeners.get(code)?.forEach(callback => callback(value));
+                channel.postMessage(code);
+            };
+            return {
+                uid,
+                now: () => Date.now(),
+                async create(code, room) { if (read(code)) return false; publish(code, room); return true; },
+                async update(code, mutate) { const current = read(code); const next = mutate(current); if (next !== undefined) publish(code, next); return next ?? current; },
+                subscribe(code, callback) {
+                    if (!listeners.has(code)) listeners.set(code, new Set());
+                    listeners.get(code).add(callback);
+                    const notify = event => { if (event.data === code || event.key === key(code)) callback(read(code)); };
+                    channel.addEventListener("message", notify);
+                    window.addEventListener("storage", notify);
+                    callback(read(code));
+                    return () => {
+                        listeners.get(code)?.delete(callback);
+                        channel.removeEventListener("message", notify);
+                        window.removeEventListener("storage", notify);
+                    };
+                }
+            };
+        }
+
+        const base = "https://www.gstatic.com/firebasejs/10.14.1/";
+        const [{ initializeApp }, authApi, dbApi] = await Promise.all([
+            import(base + "firebase-app.js"),
+            import(base + "firebase-auth.js"),
+            import(base + "firebase-database.js")
+        ]);
+        const app = initializeApp(FIREBASE_CONFIG);
+        const auth = authApi.initializeAuth(app, { persistence: authApi.inMemoryPersistence });
+        await authApi.signInAnonymously(auth);
+        const db = dbApi.getDatabase(app);
+        // ponytail: 房主時鐘只控制15秒倒數；真正搶答先後仍由Database transaction裁決。
+        const offset = 0;
+        const roomRef = code => dbApi.ref(db, `duels/${code}`);
+        return {
+            uid: auth.currentUser.uid,
+            now: () => Date.now() + offset,
+            async create(code, room) {
+                const result = await dbApi.runTransaction(roomRef(code), current => current ? undefined : room, { applyLocally: false });
+                return result.committed;
+            },
+            async update(code, mutate) {
+                await dbApi.get(roomRef(code));
+                const result = await dbApi.runTransaction(roomRef(code), current => current === null ? null : mutate(current), { applyLocally: false });
+                return result.snapshot.val();
+            },
+            subscribe(code, callback) { return dbApi.onValue(roomRef(code), snapshot => callback(snapshot.val())); }
+        };
+    }
+
+    function duelPlayer() {
+        settings.playerName = (elements.playerInput.value.trim() || "化學大導師").slice(0, 24);
+        settings.category = elements.category.value;
+        saveSettings();
+        return { id: duelBackend.uid, name: settings.playerName, avatar: settings.avatar };
+    }
+
+    function randomRoomCode() {
+        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const bytes = crypto.getRandomValues(new Uint8Array(6));
+        return [...bytes].map(value => alphabet[value % alphabet.length]).join("");
+    }
+
+    async function ensureDuelBackend() {
+        if (!duelBackend) duelBackend = await makeDuelBackend();
+        return duelBackend;
+    }
+
+    function setDuelBusy(busy) {
+        $("btn-create-duel").disabled = busy;
+        $("btn-join-duel").disabled = busy;
+    }
+
+    function showDuelError(error) {
+        elements.duelStatus.textContent = `⚠️ ${error.message || error}`;
+        setDuelBusy(false);
+    }
+
+    async function createDuel() {
+        setDuelBusy(true);
+        elements.duelStatus.textContent = "正在建立房間…";
+        try {
+            await ensureDuelBackend();
+            const pool = shuffle(QUESTION_DATABASE.filter(question => settings.category === "ALL" || question.sectionId === settings.category));
+            for (let attempt = 0; attempt < 5; attempt++) {
+                const code = randomRoomCode();
+                const room = DuelCore.createRoom(code, duelPlayer(), pool.slice(0, DUEL_QUESTION_COUNT).map(question => question.id), duelBackend.now());
+                if (await duelBackend.create(code, room)) return watchDuel(code);
+            }
+            throw new Error("未能建立房間，請再試一次");
+        } catch (error) {
+            showDuelError(error);
+        }
+    }
+
+    async function joinDuel() {
+        const code = elements.duelCodeInput.value.trim().toUpperCase();
+        if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) return showDuelError(new Error("請輸入正確 6 位房間碼"));
+        setDuelBusy(true);
+        elements.duelStatus.textContent = "正在加入房間…";
+        try {
+            await ensureDuelBackend();
+            const player = duelPlayer();
+            let joined = false;
+            await duelBackend.update(code, room => {
+                if (!room) return;
+                if (room.players[player.id]) { joined = true; return room; }
+                try { joined = true; return DuelCore.joinRoom(room, player, duelBackend.now()); }
+                catch { return; }
+            });
+            if (!joined) throw new Error("房間不存在、已滿或已開始");
+            watchDuel(code);
+        } catch (error) {
+            showDuelError(error);
+        }
+    }
+
+    function watchDuel(code) {
+        duelCode = code;
+        duelFinishedShown = false;
+        duelUnsubscribe?.();
+        duelUnsubscribe = duelBackend.subscribe(code, renderDuel);
+        setDuelBusy(false);
+    }
+
+    function renderDuelPlayers(room) {
+        const rows = Object.values(room.players).map(player => {
+            const row = document.createElement("div");
+            row.className = "flex justify-between items-center bg-slate-900/80 p-3 rounded-xl border border-slate-700";
+            const name = document.createElement("span");
+            name.textContent = `${player.avatar} ${player.name}${player.id === room.hostId ? "（房主）" : ""}`;
+            const hp = document.createElement("span");
+            hp.className = "text-rose-400 font-black";
+            hp.textContent = `❤️ ${player.hp}`;
+            row.append(name, hp);
+            return row;
+        });
+        elements.duelPlayers.replaceChildren(...rows);
+    }
+
+    function renderDuel(room) {
+        if (!room) return showDuelError(new Error("房間已關閉"));
+        duelRoom = room;
+        if (!room.players[duelBackend.uid]) return;
+        renderDuelPlayers(room);
+        elements.duelCode.textContent = room.code;
+        elements.duelSetup.classList.add("hidden");
+        elements.duelRoom.classList.remove("hidden");
+        elements.duelLeave.classList.remove("hidden");
+        if (room.status === "waiting") {
+            elements.duelStatus.textContent = Object.keys(room.players).length === 1 ? "等待另一位玩家加入…" : "兩位玩家已到齊！";
+            elements.duelReady.classList.toggle("hidden", room.hostId !== duelBackend.uid || Object.keys(room.players).length !== 2);
+            return;
+        }
+        elements.duelReady.classList.add("hidden");
+        if (room.status === "playing") return renderDuelRound(room);
+        finishDuel(room);
+    }
+
+    async function startDuel() {
+        try {
+            await duelBackend.update(duelCode, room => DuelCore.startRoom(room, duelBackend.uid, duelBackend.now()));
+        } catch (error) {
+            showDuelError(error);
+        }
+    }
+
+    function enterDuelGame() {
+        state = freshState();
+        state.mode = "duel";
+        state.gameEnded = false;
+        elements.welcome.classList.add("hidden");
+        closeModal(elements.duel, false);
+        elements.headerAvatar.textContent = settings.avatar;
+        elements.headerName.textContent = settings.playerName;
+        $("wizard").firstChild.nodeValue = settings.avatar;
+        elements.modeBadge.textContent = "⚔️ 雙人對戰";
+        elements.modeBadge.className = "ml-2 bg-indigo-600 text-white border border-indigo-400 text-[10px] font-bold px-2 py-0.5 rounded-full";
+        $("btn-rules").disabled = true;
+        $("btn-settings").disabled = true;
+        elements.hint.classList.add("hidden");
+    }
+
+    function renderDuelRound(room) {
+        if (state.mode !== "duel") enterDuelGame();
+        const me = room.players[duelBackend.uid];
+        const opponent = Object.values(room.players).find(player => player.id !== duelBackend.uid);
+        const question = QUESTION_DATABASE.find(item => item.id === room.round.questionId);
+        const roundKey = `${room.roundIndex}:${room.round.startedAt}`;
+        elements.hpText.textContent = `${me.hp} / 5`;
+        elements.monster.textContent = opponent.avatar;
+        elements.monsterName.textContent = opponent.name;
+        elements.monsterHpText.textContent = `${opponent.hp}/5`;
+        elements.monsterHpBar.style.width = `${Math.max(0, opponent.hp) * 20}%`;
+        elements.formula.innerHTML = question.formula;
+        elements.wave.textContent = `DUEL ${room.roundIndex + 1}`;
+        elements.progress.textContent = `${room.roundIndex + 1} / ${room.questionIds.length}`;
+        elements.score.textContent = "VS";
+        elements.combo.textContent = `❤️${opponent.hp}`;
+
+        if (duelRenderedRound !== roundKey) {
+            duelRenderedRound = roundKey;
+            elements.answer.value = "";
+            elements.answer.disabled = false;
+            elements.shoot.disabled = false;
+            startDuelTimer(room);
+            elements.answer.focus();
+        }
+        if (room.round.submissions?.[duelBackend.uid] === false && !room.round.resolved) {
+            elements.answer.disabled = true;
+            elements.shoot.disabled = true;
+            elements.timerLive.textContent = "答錯，等待對手作答";
+        }
+        if (room.round.resolved) resolveDuelRound(room);
+    }
+
+    function startDuelTimer(room) {
+        clearInterval(duelRoundTimer);
+        const tick = () => {
+            const remaining = Math.max(0, room.round.startedAt + DUEL_ROUND_MS - duelBackend.now());
+            elements.timerBar.style.width = `${remaining / DUEL_ROUND_MS * 100}%`;
+            elements.timerLive.textContent = `尚餘${Math.ceil(remaining / 1000)}秒`;
+            if (!remaining) {
+                clearInterval(duelRoundTimer);
+                if (duelBackend.uid === room.hostId) duelBackend.update(duelCode, current => {
+                    if (!current || current.status !== "playing" || current.round.resolved || current.round.startedAt !== room.round.startedAt) return;
+                    return DuelCore.expireRound(current, duelBackend.uid, duelBackend.now());
+                });
+            }
+        };
+        duelRoundTimer = setInterval(tick, 100);
+        tick();
+    }
+
+    function resolveDuelRound(room) {
+        clearInterval(duelRoundTimer);
+        elements.answer.disabled = true;
+        elements.shoot.disabled = true;
+        elements.timerBar.style.width = "0%";
+        const key = `${room.roundIndex}:${room.round.startedAt}:done`;
+        if (duelRenderedRound !== key) {
+            duelRenderedRound = key;
+            const won = room.round.winnerId === duelBackend.uid;
+            showToast(room.round.winnerId ? (won ? "⚡ 你搶先答啱！" : "💥 對手搶先答啱！") : "⏳ 本回合無人答啱", won ? "bg-emerald-600/95" : "bg-rose-600/95");
+        }
+        if (duelBackend.uid === room.hostId && room.status === "playing" && !duelAdvanceTimer) {
+            duelAdvanceTimer = setTimeout(async () => {
+                duelAdvanceTimer = null;
+                await duelBackend.update(duelCode, current => {
+                    if (!current || current.status !== "playing" || !current.round.resolved || current.round.startedAt !== room.round.startedAt) return;
+                    return DuelCore.nextRound(current, duelBackend.uid, duelBackend.now());
+                });
+            }, 1200);
+        }
+    }
+
+    async function submitDuelAnswer() {
+        if (!duelRoom || duelRoom.status !== "playing" || duelRoom.round.resolved || duelRoom.round.submissions?.[duelBackend.uid] !== undefined) return;
+        if (!elements.answer.value.trim()) return showToast("請先輸入氧化數", "bg-slate-700/95");
+        const question = QUESTION_DATABASE.find(item => item.id === duelRoom.round.questionId);
+        const correct = normalizeAnswer(elements.answer.value) === question.answer;
+        elements.answer.disabled = true;
+        elements.shoot.disabled = true;
+        await duelBackend.update(duelCode, current => {
+            if (!current || current.status !== "playing" || current.round.resolved || current.round.questionId !== question.id || current.round.submissions?.[duelBackend.uid] !== undefined) return;
+            return DuelCore.answer(current, duelBackend.uid, correct, duelBackend.now());
+        });
+    }
+
+    function finishDuel(room) {
+        if (duelFinishedShown) return;
+        duelFinishedShown = true;
+        clearInterval(duelRoundTimer);
+        clearTimeout(duelAdvanceTimer);
+        const message = room.winnerId === null ? "🤝 平手！" : room.winnerId === duelBackend.uid ? "🏆 你勝出！" : "💪 對手勝出！";
+        elements.duelStatus.textContent = `${message} 最終生命值已顯示。`;
+        elements.duelReady.classList.add("hidden");
+        elements.duelLeave.textContent = "🏠 返回主選單";
+        openModal(elements.duel, elements.duelLeave);
+    }
+
+    async function leaveDuel() {
+        clearInterval(duelRoundTimer);
+        clearTimeout(duelAdvanceTimer);
+        duelUnsubscribe?.();
+        duelUnsubscribe = null;
+        if (duelBackend && duelCode && duelRoom?.status !== "finished") {
+            await duelBackend.update(duelCode, room => {
+                if (!room || !room.players[duelBackend.uid]) return room;
+                if (room.status === "playing") {
+                    room.status = "finished";
+                    room.winnerId = Object.keys(room.players).find(id => id !== duelBackend.uid) || null;
+                    return room;
+                }
+                if (room.hostId === duelBackend.uid) return null;
+                delete room.players[duelBackend.uid];
+                return room;
+            });
+        }
+        duelRoom = null;
+        duelCode = "";
+        duelRenderedRound = null;
+        duelFinishedShown = false;
+        state = freshState();
+        elements.duelSetup.classList.remove("hidden");
+        elements.duelRoom.classList.add("hidden");
+        elements.duelLeave.classList.add("hidden");
+        elements.duelLeave.textContent = "← 離開房間";
+        elements.duelStatus.textContent = "建立房間，或者輸入朋友嘅房間碼。";
+        $("btn-rules").disabled = false;
+        $("btn-settings").disabled = false;
+        closeModal(elements.duel, false);
+        elements.welcome.classList.remove("hidden");
     }
 
     function chooseQuestions(mode, overrideQuestions = null) {
@@ -899,6 +1396,7 @@
     }
 
     function checkAnswer() {
+        if (state.mode === "duel") return submitDuelAnswer();
         if (state.answerLocked || state.gameEnded || timerPaused) return;
         if (!elements.answer.value.trim()) {
             showToast("請先輸入氧化數", "bg-slate-700/95");
@@ -1367,6 +1865,18 @@
         settings.lastMode = "challenge";
         startSession("challenge");
     });
+    $("btn-start-duel").addEventListener("click", () => {
+        settings.playerName = (elements.playerInput.value.trim() || "化學大導師").slice(0, 24);
+        settings.category = elements.category.value;
+        saveSettings();
+        openModal(elements.duel, $("btn-create-duel"));
+    });
+    $("btn-create-duel").addEventListener("click", createDuel);
+    $("btn-join-duel").addEventListener("click", joinDuel);
+    elements.duelCodeInput.addEventListener("keydown", event => { if (event.key === "Enter") joinDuel(); });
+    elements.duelReady.addEventListener("click", startDuel);
+    elements.duelLeave.addEventListener("click", leaveDuel);
+    $("btn-close-duel").addEventListener("click", () => duelCode ? leaveDuel() : closeModal(elements.duel));
     elements.shoot.addEventListener("click", checkAnswer);
     elements.answer.addEventListener("keydown", event => {
         if (event.key === "Enter") checkAnswer();
@@ -1402,6 +1912,7 @@
         }
     });
     $("btn-back-home").addEventListener("click", () => {
+        if (state.mode === "duel") return leaveDuel();
         pauseTimer();
         state.gameEnded = true;
         elements.welcome.classList.remove("hidden");
@@ -1444,7 +1955,7 @@
     });
 
     document.addEventListener("visibilitychange", () => {
-        if (state.gameEnded || state.answerLocked) return;
+        if (state.mode === "duel" || state.gameEnded || state.answerLocked) return;
         if (state.mode === "tutorial") {
             if (document.hidden) pauseTimer();
             else resumeTimer();
@@ -1455,7 +1966,8 @@
 
     document.addEventListener("keydown", event => {
         if (event.key === "Escape" && activeModal && activeModal !== elements.feedback && activeModal !== elements.results) {
-            if (activeModal === elements.rules || activeModal === elements.settings) closePausedModal(activeModal);
+            if (activeModal === elements.duel && duelCode) leaveDuel();
+            else if (activeModal === elements.rules || activeModal === elements.settings) closePausedModal(activeModal);
             else closeModal(activeModal);
             return;
         }
