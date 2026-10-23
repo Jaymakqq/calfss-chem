@@ -16,6 +16,17 @@
 
 const SIMS = [
   {
+    id: 'activation-energy',
+    title: '活化能與能線圖：自學評估',
+    titleEn: 'Activation Energy & Energy Profile Assessment',
+    subject: 'chemistry',
+    topic: '化學反應與能量 Chemical Reactions and Energy',
+    level: 'dse',
+    desc: '透過讀圖、計算及繪畫能線圖，鞏固活化能、焓變、活化複體和中間體概念',
+    emoji: '⛰️',
+    tags: ['activation energy', 'energy profile', 'enthalpy change', 'activated complex', 'intermediate', '活化能', '能線圖', '焓變', '活化複體', '中間體']
+  },
+  {
     id: 'ice-melting',
     title: '冰融化：分子視角 3D',
     titleEn: 'Ice Melting: Molecular View',
